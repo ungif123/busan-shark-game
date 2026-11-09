@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>부캉이 피하기 3D</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0b132b;
+            font-family: '맑은 고딕', sans-serif;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #lobby-screen {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(11, 19, 43, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 20;
+            backdrop-filter: blur(5px);
+        }
+
+        #lobby-title {
+            font-size: 70px;
+            color: #00ffff;
+            font-weight: bold;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #005f73;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        #lobby-desc {
+            font-size: 22px;
+            color: #e0e0e0;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 50px;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        .highlight { color: #ffb703; font-weight: bold; }
+
+        #start-btn {
+            padding: 15px 60px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #0b132b;
+            background-color: #00ffff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px #00ffff;
+            transition: all 0.2s;
+        }
+
+        #start-btn:hover {
+            background-color: #fff;
+            box-shadow: 0 0 40px #fff;
+            transform: scale(1.05);
+        }
+
+        #exp-display {
+            position: absolute;
+            top: 20px; left: 20px;
+            color: #00ffff;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffff;
+            display: none;
+        }
+
+        #message-display {
+            position: absolute;
+            top: 35%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 65px;
+            font-weight: bold;
+            text-shadow: 3px 3px 0px #000;
+            display: none;
+            text-align: center;
+        }
+
+        #restart-btn {
+            position: absolute;
+            top: 55%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #d90429;
+            border: 3px solid #fff;
+            border-radius: 10px;
+            cursor: pointer;
+            display: none;
+            pointer-events: auto;
+            box-shadow: 0 0 15px #d90429;
+            transition: all 0.2s;
+        }
+
+        #restart-btn:hover {
+            background-color: #ffb703;
+            box-shadow: 0 0 25px #ffb703;
+            color: #0b132b;
+            border-color: #0b132b;
+        }
+    </style>
+</head>
+<body>
+    <div id="lobby-screen">
+        <div id="lobby-title">부캉이 피하기 3D</div>
+        <div id="lobby-desc">
+            무시무시한 상어가 쫓아옵니다!<br>
+            <span class="highlight">[A] 왼쪽 &nbsp; [D] 오른쪽 &nbsp; [Space] 점프</span><br>
+            시간이 지날수록 빨라집니다. 최대한 오래 살아남으세요!
+        </div>
+        <button id="start-btn">게임 시작</button>
+    </div>
+
+    <div id="ui-layer">
+        <div id="exp-display">경험치: <span id="exp-value">0</span></div>
+        <div id="message-display"></div>
+        <button id="restart-btn">다시하기 [Enter]</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // --- 1. 3D 공간 설정 ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#0b132b');
+        scene.fog = new THREE.Fog('#0b132b', 15, 80); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 5, 12);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // --- 2. 조명 ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        scene.add(directionalLight);
+
+        // --- 3. 바다 배경 ---
+        const planeGeo = new THREE.PlaneGeometry(150, 300);
+        const planeMat = new THREE.MeshLambertMaterial({ color: '#001b3a' });
+        const plane = new THREE.Mesh(planeGeo, planeMat);
+        plane.rotation.x = -Math.PI / 2;
+        scene.add(plane);
+
+        const gridHelper = new THREE.GridHelper(150, 40, 0x005f73, 0x0a9396);
+        gridHelper.position.y = 0.02;
+        scene.add(gridHelper);
+
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.5 });
+        for(let x of [-1.5, 1.5]) {
+            const points = [];
+            points.push(new THREE.Vector3(x, 0.05, -150));
+            points.push(new THREE.Vector3(x, 0.05, 20));
+            const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(lineGeo, lineMat);
+            scene.add(line);
+        }
+
+        // --- 4. 플레이어 (배) ---
+        function createBoat() {
+            const group = new THREE.Group();
+            const hullMat = new THREE.MeshLambertMaterial({ color: '#8b5a2b' });
+            
+            const backGeo = new THREE.BoxGeometry(1.4, 0.6, 1.6);
+            const back = new THREE.Mesh(backGeo, hullMat);
+            back.position.set(0, 0.3, 0.4);
+            group.add(back);
+
+            const frontGeo = new THREE.ConeGeometry(0.7, 1.2, 4);
+            const front = new THREE.Mesh(frontGeo, hullMat);
+            front.rotation.x = -Math.PI / 2;
+            front.rotation.z = Math.PI / 4; 
+            front.scale.set(1, 1, 0.6); 
+            front.position.set(0, 0.3, -0.8);
+            group.add(front);
+
+            const mastGeo = new THREE.CylinderGeometry(0.05, 0.05, 2);
+            const mastMat = new THREE.MeshLambertMaterial({ color: '#5c4033' });
+            const mast = new THREE.Mesh(mastGeo, mastMat);
+            mast.position.set(0, 1.3, 0.2);
+            group.add(mast);
+
+            const sailGeo = new THREE.ConeGeometry(0.8, 1.6, 3);
+            const sailMat = new THREE.MeshLambertMaterial({ color: '#f5f5dc' });
+            const sail = new THREE.Mesh(sailGeo, sailMat);
+            sail.position.set(0, 1.2, -0.1);
+            sail.rotation.y = -Math.PI / 2; 
+            group.add(sail);
+
+            return group;
+        }
+
+        const lanes = [-3, 0, 3];
+        let currentLane = 1;
+        const playerBaseY = 0;
+
+        const player = createBoat();
+        player.position.set(lanes[currentLane], playerBaseY, 5);
+        scene.add(player);
+
+        // --- 5. 상어 모델 생성 함수 ---
+        function createLowPolySharkModel() {
+            const group = new THREE.Group();
+            
+            const topSkinMat = new THREE.MeshStandardMaterial({ color: '#6c757d', flatShading: true }); 
+            const bellyMat = new THREE.MeshStandardMaterial({ color: '#eef0f2', flatShading: true }); 
+            const eyeMat = new THREE.MeshBasicMaterial({ color: '#000000' }); 
+            
+            const bodyGeo = new THREE.SphereGeometry(1, 10, 6);
+            const body = new THREE.Mesh(bodyGeo, topSkinMat);
+            body.scale.set(0.8, 0.8, 2.0);
+            body.position.set(0, 0.3, 0);
+            group.add(body);
+
+            const bellyGeo = new THREE.SphereGeometry(0.95, 10, 6);
+            const belly = new THREE.Mesh(bellyGeo, bellyMat);
+            belly.scale.set(0.78, 0.55, 1.95);
+            belly.position.set(0, 0.1, 0);
+            group.add(belly);
+
+            const snoutGeo = new THREE.ConeGeometry(0.75, 1.8, 8);
+            const snout = new THREE.Mesh(snoutGeo, topSkinMat);
+            snout.rotation.x = -Math.PI / 2;
+            snout.position.set(0, 0.25, -1.5);
+            snout.scale.set(0.95, 0.7, 1);
+            group.add(snout);
+
+            const snoutBelly = new THREE.Mesh(snoutGeo, bellyMat);
+            snoutBelly.rotation.x = -Math.PI / 2;
+            snoutBelly.position.set(0, 0.1, -1.45);
+            snoutBelly.scale.set(0.9, 0.5, 0.9);
+            group.add(snoutBelly);
+
+            const eyeGeo = new THREE.SphereGeometry(0.07, 6, 6);
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.45, 0.35, -1.2);
+            group.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.45, 0.35, -1.2);
+            group.add(rightEye);
+
+            const dorsalGeo = new THREE.ConeGeometry(0.35, 1.3, 4);
+            const dorsal = new THREE.Mesh(dorsalGeo, topSkinMat);
+            dorsal.position.set(0, 1.3, 0.2);
+            dorsal.rotation.x = -0.35;
+            group.add(dorsal);
+
+            const finGeo = new THREE.ConeGeometry(0.5, 1.6, 4);
+            const leftFin = new THREE.Mesh(finGeo, topSkinMat);
+            leftFin.position.set(-0.9, 0.0, -0.2);
+            leftFin.rotation.z = Math.PI / 2.8;
+            leftFin.rotation.x = 0.2;
+            group.add(leftFin);
+
+            const rightFin = new THREE.Mesh(finGeo, topSkinMat);
+            rightFin.position.set(0.9, 0.0, -0.2);
+            rightFin.rotation.z = -Math.PI / 2.8;
+            rightFin.rotation.x = 0.2;
+            group.add(rightFin);
+
+            const tailFinGeo = new THREE.ConeGeometry(0.3, 2.2, 4);
+            const tailFin = new THREE.Mesh(tailFinGeo, topSkinMat);
+            tailFin.position.set(0, 0.4, 2.3);
+            tailFin.rotation.x = -0.2;
+            group.add(tailFin);
+
+            return group;
+        }
+
+        // 뒤에서 쫓아오는 상어
+        const shark = createLowPolySharkModel();
+        shark.scale.set(0.45, 0.45, 0.45);
+        shark.position.set(0, 0.2, 9); 
+        scene.add(shark);
+
+        // 앞에서 다가오는 장애물 상어
+        function createObstacleShark() {
+            const obstacleGroup = createLowPolySharkModel();
+            
+            const mouthMat = new THREE.MeshStandardMaterial({ color: '#590d22', flatShading: true });
+            const mouthGeo = new THREE.BoxGeometry(0.65, 0.25, 0.65);
+            const mouth = new THREE.Mesh(mouthGeo, mouthMat);
+            mouth.position.set(0, -0.05, -1.6);
+            obstacleGroup.add(mouth);
+
+            obstacleGroup.scale.set(0.55, 0.55, 0.55);
+            obstacleGroup.rotation.y = Math.PI; 
+            
+            return obstacleGroup;
+        }
+
+        // --- 6. 게임 상태 및 난이도 조절 변수 ---
+        const lobbyScreen = document.getElementById('lobby-screen');
+        const startBtn = document.getElementById('start-btn');
+        const expDisplay = document.getElementById('exp-display');
+        const expValueSpan = document.getElementById('exp-value');
+        const messageDisplay = document.getElementById('message-display');
+        const restartBtn = document.getElementById('restart-btn');
+        
+        let isGameStarted = false; 
+        let isGameOver = false;
+        
+        let obstacles = [];
+        let exp = 0;
+        let frameCount = 0;
+
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const gravity = -0.02;
+
+        // [난이도 완화 적용]
+        let currentObsSpeed = 0.9; // 시작 속도 (기존 1.2 ➔ 0.9)
+        let spawnInterval = 50;   // 시작 생성 주기 (기존 40 ➔ 50)
+
+        // --- 7. 시작 및 조작 이벤트 ---
+        startBtn.addEventListener('click', () => {
+            lobbyScreen.style.display = 'none';
+            expDisplay.style.display = 'block';
+            isGameStarted = true;
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (isGameOver && e.key === 'Enter') {
+                restartBtn.click();
+                return;
+            }
+
+            if (!isGameStarted || isGameOver) return;
+
+            if ((e.key === 'a' || e.key === 'A') && currentLane > 0) {
+                currentLane--;
+                player.rotation.z = 0.2; 
+            } else if ((e.key === 'd' || e.key === 'D') && currentLane < 2) {
+                currentLane++;
+                player.rotation.z = -0.2; 
+            } else if (e.code === 'Space' && !isJumping) {
+                isJumping = true;
+                jumpVelocity = 0.4;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'a' || e.key === 'A' || e.key === 'd' || e.key === 'D') {
+                if (!isGameOver) player.rotation.z = 0;
+            }
+        });
+
+        // --- 8. 장애물 생성 함수 ---
+        function createBuoy() {
+            const group = new THREE.Group();
+            const redMat = new THREE.MeshLambertMaterial({ color: '#d90429' });
+            const whiteMat = new THREE.MeshLambertMaterial({ color: '#ffffff' });
+
+            const baseGeo = new THREE.CylinderGeometry(0.5, 0.5, 1, 16);
+            const base = new THREE.Mesh(baseGeo, redMat);
+            base.position.y = 0.5;
+            group.add(base);
+
+            const stripeGeo = new THREE.CylinderGeometry(0.52, 0.52, 0.3, 16);
+            const stripe = new THREE.Mesh(stripeGeo, whiteMat);
+            stripe.position.y = 0.5;
+            group.add(stripe);
+
+            const topGeo = new THREE.ConeGeometry(0.5, 1, 16);
+            const top = new THREE.Mesh(topGeo, redMat);
+            top.position.y = 1.5;
+            group.add(top);
+
+            return group;
+        }
+
+        function createJellyfish() {
+            const group = new THREE.Group();
+            const jellyMat = new THREE.MeshLambertMaterial({ color: '#b5179e', transparent: true, opacity: 0.8 });
+
+            const headGeo = new THREE.SphereGeometry(0.7, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const head = new THREE.Mesh(headGeo, jellyMat);
+            head.position.y = 1.2;
+            group.add(head);
+
+            const legGeo = new THREE.CylinderGeometry(0.05, 0.05, 1);
+            for (let i = 0; i < 4; i++) {
+                const leg = new THREE.Mesh(legGeo, jellyMat);
+                leg.position.x = Math.cos((i / 4) * Math.PI * 2) * 0.3;
+                leg.position.z = Math.sin((i / 4) * Math.PI * 2) * 0.3;
+                leg.position.y = 0.5;
+                group.add(leg);
+            }
+            return group;
+        }
+
+        function spawnObstacle() {
+            if (!isGameStarted || isGameOver) return;
+            
+            const laneIdx = Math.floor(Math.random() * 3);
+            const rand = Math.random();
+            let obsMesh, obsType;
+            
+            if (rand < 0.33) {
+                obsMesh = createBuoy();
+                obsType = '부표';
+            } else if (rand < 0.66) {
+                obsMesh = createJellyfish();
+                obsType = '해파리';
+            } else {
+                obsMesh = createObstacleShark();
+                obsType = '상어';
+            }
+            
+            obsMesh.position.set(lanes[laneIdx], 0, -80); 
+            scene.add(obsMesh);
+            
+            obstacles.push({ mesh: obsMesh, lane: laneIdx, passed: false, type: obsType });
+        }
+
+        // --- 9. 다시하기 기능 ---
+        restartBtn.addEventListener('click', () => {
+            obstacles.forEach(obs => scene.remove(obs.mesh));
+            obstacles = [];
+
+            isGameOver = false;
+            exp = 0;
+            frameCount = 0;
+            currentLane = 1;
+            isJumping = false;
+            
+            // 완화된 난이도로 초기화
+            currentObsSpeed = 0.9;
+            spawnInterval = 50;
+            
+            player.position.set(lanes[currentLane], playerBaseY, 5);
+            player.rotation.set(0, 0, 0); 
+            
+            shark.position.set(lanes[currentLane], 0.2, 9);
+            shark.rotation.set(0, 0, 0);
+
+            expValueSpan.innerText = exp;
+            messageDisplay.style.display = "none";
+            restartBtn.style.display = "none";
+        });
+
+        // --- 10. 메인 루프 ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!isGameStarted) {
+                player.position.y = playerBaseY + Math.sin(Date.now() * 0.005) * 0.05;
+                player.rotation.x = Math.sin(Date.now() * 0.003) * 0.05;
+                const time = Date.now() * 0.005;
+                shark.position.y = 0.2 + Math.sin(time * 2) * 0.1;
+                renderer.render(scene, camera);
+                return;
+            }
+
+            if (!isGameOver) {
+                gridHelper.position.z += (currentObsSpeed * 0.2); 
+                if (gridHelper.position.z > 5) gridHelper.position.z = 0;
+                
+                if (!isJumping) {
+                    player.position.y = playerBaseY + Math.sin(Date.now() * 0.005) * 0.05;
+                    player.rotation.x = Math.sin(Date.now() * 0.003) * 0.05;
+                }
+                player.position.x += (lanes[currentLane] - player.position.x) * 0.15;
+
+                if (isJumping) {
+                    player.position.y += jumpVelocity;
+                    jumpVelocity += gravity;
+                    
+                    if (player.position.y <= playerBaseY) {
+                        player.position.y = playerBaseY;
+                        isJumping = false;
+                    }
+                }
+
+                const time = Date.now() * 0.005;
+                shark.position.x += (player.position.x - shark.position.x) * 0.05; 
+                shark.rotation.z = Math.sin(time) * 0.1; 
+                shark.position.y = 0.2 + Math.sin(time * 2) * 0.1;
+
+                frameCount++;
+                if (frameCount % Math.floor(spawnInterval) === 0) spawnObstacle();
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.mesh.position.z += currentObsSpeed; 
+
+                    if (obs.type === '상어') {
+                        obs.mesh.rotation.z = Math.sin(time * 2 + obs.mesh.position.z) * 0.1;
+                        obs.mesh.position.y = 0.2 + Math.sin(time * 3 + obs.mesh.position.z) * 0.2;
+                    }
+
+                    if (Math.abs(obs.mesh.position.z - player.position.z) < 1.5) {
+                        if (obs.lane === currentLane && player.position.y < 1.5) {
+                            isGameOver = true;
+                            
+                            if (obs.type === '부표') {
+                                messageDisplay.innerHTML = "부표에<br>걸렸습니다!";
+                            } else if (obs.type === '해파리') {
+                                messageDisplay.innerHTML = "해파리에<br>걸렸습니다!";
+                            } else {
+                                messageDisplay.innerHTML = "상어에게<br>먹혔습니다!";
+                            }
+                            
+                            messageDisplay.style.color = "#d90429";
+                            messageDisplay.style.display = "block";
+                            restartBtn.style.display = "block";
+                        }
+                    }
+
+                    if (!obs.passed && obs.mesh.position.z > player.position.z + 1.5) {
+                        obs.passed = true;
+                        exp++;
+                        expValueSpan.innerText = exp;
+                        
+                        // [난이도 상승 완화]
+                        currentObsSpeed += 0.025; // 속도 증가 폭 완화 (기존 0.05 ➔ 0.025)
+                        spawnInterval = Math.max(25, spawnInterval - 0.8); // 최소 간격 완화 (기존 15 ➔ 25)
+                    }
+
+                    if (obs.mesh.position.z > 15) {
+                        scene.remove(obs.mesh);
+                        obstacles.splice(i, 1);
+                    }
+                }
+            } else {
+                if (shark.position.z > player.position.z - 0.5) {
+                    shark.position.x += (player.position.x - shark.position.x) * 0.2; 
+                    shark.position.z -= 0.3; 
+                    shark.position.y += 0.08; 
+                }
+
+                if (player.position.y > -3) {
+                    player.position.y -= 0.06; 
+                    player.rotation.x -= 0.05; 
+                    player.rotation.z += 0.1; 
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
