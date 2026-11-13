@@ -123,6 +123,7 @@
             text-shadow: 0 0 15px rgba(255, 209, 102, 0.8), 2px 2px 0 #000;
             opacity: 0;
             transition: opacity 0.4s;
+            text-align: center;
         }
 
         #message-display {
@@ -189,8 +190,8 @@
     <script>
         // --- 1. 3D 공간 및 분위기 설정 ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color('#0a2e46');
-        scene.fog = new THREE.FogExp2('#0a2e46', 0.015);
+        scene.background = new THREE.Color('#0b4f6c');
+        scene.fog = new THREE.FogExp2('#0b4f6c', 0.015);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 5.2, 12.2);
@@ -200,7 +201,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        // --- 2. 바다 조명 (태양광 + 반사광) ---
+        // --- 2. 바다 조명 ---
         const ambientLight = new THREE.AmbientLight(0x8ecae6, 0.65);
         scene.add(ambientLight);
         
@@ -212,11 +213,12 @@
         backLight.position.set(-15, 10, -20);
         scene.add(backLight);
 
-        // --- 3. 진짜 바다 느낌의 3D 출렁이는 파도 & 암초 환경 ---
+        // --- 3. 진짜 바다 느낌의 3D 출렁이는 파도 & 해상 배경 오브젝트 ---
         const oceanGeo = new THREE.PlaneGeometry(180, 260, 44, 60);
         oceanGeo.rotateX(-Math.PI / 2);
         const oceanMat = new THREE.MeshStandardMaterial({
-            color: '#006994',
+            color: '#0081a7',
+            emissive: '#000000',
             roughness: 0.35,
             metalness: 0.1,
             flatShading: true
@@ -224,7 +226,6 @@
         const ocean = new THREE.Mesh(oceanGeo, oceanMat);
         scene.add(ocean);
 
-        // 파도 애니메이션용 초기 정점 좌표 저장
         const oceanPos = oceanGeo.attributes.position;
         const baseOceanCoords = [];
         for (let i = 0; i < oceanPos.count; i++) {
@@ -234,7 +235,7 @@
             });
         }
 
-        // 차선 구분을 위한 은은한 물거품 부표 라인 (레이저 선 대신 자연스러운 바다 느낌)
+        // 차선 구분 물거품 라인
         const laneMarkerGroup = new THREE.Group();
         const foamMat = new THREE.MeshBasicMaterial({ color: 0xade8f4, transparent: true, opacity: 0.35 });
         for (let x of [-1.5, 1.5]) {
@@ -247,34 +248,116 @@
         }
         scene.add(laneMarkerGroup);
 
-        // 바다 양옆을 스쳐 지나가는 3D 저폴리 암초섬 (지루함 방지 & 입체감)
-        const rocks = [];
-        const rockMat = new THREE.MeshStandardMaterial({ color: '#3d405b', flatShading: true });
-        const rockSnowMat = new THREE.MeshStandardMaterial({ color: '#81b29a', flatShading: true });
+        // 해상 배경 오브젝트 3종 (야자수 섬, 등대 부표, 난파선)
+        const seaProps = [];
 
-        function createSeaRock(side) {
-            const rockGroup = new THREE.Group();
-            const height = 4 + Math.random() * 7;
-            const radius = 2 + Math.random() * 2.5;
-            const mainGeo = new THREE.ConeGeometry(radius, height, 6);
-            const mainRock = new THREE.Mesh(mainGeo, rockMat);
-            mainRock.position.y = height / 2 - 0.5;
-            mainRock.rotation.y = Math.random() * Math.PI;
-            rockGroup.add(mainRock);
+        function createPalmIsland() {
+            const group = new THREE.Group();
 
-            const subGeo = new THREE.ConeGeometry(radius * 0.6, height * 0.6, 5);
-            const subRock = new THREE.Mesh(subGeo, rockSnowMat);
-            subRock.position.set(radius * 0.5, height * 0.25, radius * 0.3);
-            rockGroup.add(subRock);
+            const sandGeo = new THREE.CylinderGeometry(2.8, 3.8, 0.7, 9);
+            const sandMat = new THREE.MeshStandardMaterial({ color: '#f4d58d', flatShading: true });
+            const sand = new THREE.Mesh(sandGeo, sandMat);
+            sand.position.y = 0.25;
+            group.add(sand);
 
-            const xPos = side * (14 + Math.random() * 18);
-            rockGroup.position.set(xPos, 0, -120 - Math.random() * 120);
-            scene.add(rockGroup);
-            rocks.push(rockGroup);
+            const trunkMat = new THREE.MeshStandardMaterial({ color: '#7f4f24', flatShading: true });
+            for (let i = 0; i < 4; i++) {
+                const segGeo = new THREE.CylinderGeometry(0.22 - i * 0.02, 0.26 - i * 0.02, 1.1, 6);
+                const seg = new THREE.Mesh(segGeo, trunkMat);
+                seg.position.set(i * 0.14, 0.9 + i * 0.95, 0);
+                seg.rotation.z = -0.12 * i;
+                group.add(seg);
+            }
+
+            const leafMat = new THREE.MeshStandardMaterial({ color: '#52b788', flatShading: true });
+            for (let i = 0; i < 6; i++) {
+                const leafGeo = new THREE.ConeGeometry(0.55, 2.4, 4);
+                const leaf = new THREE.Mesh(leafGeo, leafMat);
+                const angle = (i / 6) * Math.PI * 2;
+                leaf.position.set(0.45 + Math.cos(angle) * 0.9, 4.3, Math.sin(angle) * 0.9);
+                leaf.rotation.z = -Math.PI / 2.6;
+                leaf.rotation.y = -angle;
+                group.add(leaf);
+            }
+
+            return group;
+        }
+
+        function createSeaLighthouse() {
+            const group = new THREE.Group();
+
+            const baseGeo = new THREE.CylinderGeometry(1.8, 2.2, 0.8, 8);
+            const baseMat = new THREE.MeshStandardMaterial({ color: '#2b2d42', flatShading: true });
+            const base = new THREE.Mesh(baseGeo, baseMat);
+            base.position.y = 0.3;
+            group.add(base);
+
+            const redMat = new THREE.MeshStandardMaterial({ color: '#e63946', flatShading: true });
+            const whiteMat = new THREE.MeshStandardMaterial({ color: '#f1faee', flatShading: true });
+            for (let i = 0; i < 4; i++) {
+                const towerGeo = new THREE.CylinderGeometry(1.1 - i * 0.15, 1.25 - i * 0.15, 1.2, 8);
+                const tower = new THREE.Mesh(towerGeo, i % 2 === 0 ? redMat : whiteMat);
+                tower.position.y = 1.2 + i * 1.15;
+                group.add(tower);
+            }
+
+            const lightGeo = new THREE.SphereGeometry(0.55, 8, 8);
+            const lightMat = new THREE.MeshBasicMaterial({ color: '#ffd166' });
+            const beacon = new THREE.Mesh(lightGeo, lightMat);
+            beacon.position.y = 5.5;
+            group.add(beacon);
+
+            const roofGeo = new THREE.ConeGeometry(0.8, 0.9, 8);
+            const roof = new THREE.Mesh(roofGeo, redMat);
+            roof.position.y = 6.2;
+            group.add(roof);
+
+            return group;
+        }
+
+        function createShipwreck() {
+            const group = new THREE.Group();
+            const woodMat = new THREE.MeshStandardMaterial({ color: '#582f0e', flatShading: true });
+            const darkWoodMat = new THREE.MeshStandardMaterial({ color: '#331d0c', flatShading: true });
+            const tornSailMat = new THREE.MeshStandardMaterial({ color: '#adb5bd', flatShading: true });
+
+            const hullGeo = new THREE.BoxGeometry(2.2, 1.2, 5.2);
+            const hull = new THREE.Mesh(hullGeo, woodMat);
+            hull.position.y = 0.3;
+            group.add(hull);
+
+            const mastGeo = new THREE.CylinderGeometry(0.12, 0.16, 4.2, 6);
+            const mast = new THREE.Mesh(mastGeo, darkWoodMat);
+            mast.position.set(0, 2.1, -0.4);
+            mast.rotation.z = 0.25;
+            group.add(mast);
+
+            const sailGeo = new THREE.ConeGeometry(1.4, 2.2, 3);
+            const sail = new THREE.Mesh(sailGeo, tornSailMat);
+            sail.position.set(0.3, 2.3, -0.4);
+            sail.rotation.y = Math.PI / 2;
+            sail.rotation.z = 0.25;
+            group.add(sail);
+
+            group.rotation.set(0.28, Math.random() * Math.PI, 0.35);
+            return group;
+        }
+
+        function spawnSeaProp(side, zPos) {
+            const pick = Math.floor(Math.random() * 3);
+            let prop;
+            if (pick === 0) prop = createPalmIsland();
+            else if (pick === 1) prop = createSeaLighthouse();
+            else prop = createShipwreck();
+
+            const xPos = side * (12 + Math.random() * 14);
+            prop.position.set(xPos, 0, zPos);
+            scene.add(prop);
+            seaProps.push({ mesh: prop, phase: Math.random() * Math.PI * 2 });
         }
 
         for (let i = 0; i < 14; i++) {
-            createSeaRock(i % 2 === 0 ? -1 : 1);
+            spawnSeaProp(i % 2 === 0 ? -1 : 1, -20 - i * 18);
         }
 
         // 물보라(물거품) 파티클 시스템
@@ -426,7 +509,6 @@
             obstacleGroup.add(mouth);
 
             if (isTall) {
-                // 2단 점프용 거대 점프 상어 (수면 위로 높이 솟구친 형태)
                 obstacleGroup.scale.set(0.8, 0.8, 0.8);
                 obstacleGroup.position.y = 1.6;
                 obstacleGroup.rotation.set(0.25, Math.PI, 0);
@@ -455,7 +537,6 @@
         let exp = 0;
         let frameCount = 0;
 
-        // 1단 & 2단 점프 물리 변수
         let isJumping = false;
         let jumpCount = 0;
         const maxJumps = 2;
@@ -463,14 +544,15 @@
         const gravity = -0.022;
         let doubleJumpSpin = 0;
 
-        // 꾹 누르기 연속 이동 상태 변수
         const keysHeld = { left: false, right: false };
         let laneMoveTimer = 0;
-        const laneMoveDelay = 11; // 꾹 눌렀을 때 다음 칸으로 넘어가는 프레임 간격
+        const laneMoveDelay = 11;
 
         let currentObsSpeed = 0.9;
         let spawnInterval = 52;
         let waveScroll = 0;
+        let currentWavePower = 1.0;
+        let targetSharkZ = 9.0;
 
         function updateJumpUI() {
             const left = maxJumps - jumpCount;
@@ -483,10 +565,9 @@
             if (jumpCount < maxJumps) {
                 isJumping = true;
                 jumpCount++;
-                jumpVelocity = jumpCount === 1 ? 0.33 : 0.35; // 1단 점프 vs 2단 점프 추진력
+                jumpVelocity = jumpCount === 1 ? 0.33 : 0.35;
                 updateJumpUI();
 
-                // 점프 시 물보라 이펙트 & 2단 점프 회전 연출
                 for (let i = 0; i < (jumpCount === 2 ? 12 : 6); i++) {
                     spawnWake(player.position.x, player.position.y, player.position.z, 1.0, 0.08);
                 }
@@ -514,7 +595,6 @@
 
             const key = e.key.toLowerCase();
 
-            // 왼쪽 이동 (단발 입력 즉시 반응 + 꾹 누르기 상태 활성화)
             if (key === 'a' || e.key === 'ArrowLeft') {
                 if (!keysHeld.left) {
                     keysHeld.left = true;
@@ -524,9 +604,7 @@
                     }
                     laneMoveTimer = laneMoveDelay;
                 }
-            } 
-            // 오른쪽 이동
-            else if (key === 'd' || e.key === 'ArrowRight') {
+            } else if (key === 'd' || e.key === 'ArrowRight') {
                 if (!keysHeld.right) {
                     keysHeld.right = true;
                     if (currentLane < 2) {
@@ -535,9 +613,7 @@
                     }
                     laneMoveTimer = laneMoveDelay;
                 }
-            } 
-            // 1단 / 2단 점프 (길게 눌러도 중복 발동 안 되게 !e.repeat 체크)
-            else if (e.code === 'Space' && !e.repeat) {
+            } else if (e.code === 'Space' && !e.repeat) {
                 triggerJump();
             }
         });
@@ -555,7 +631,7 @@
             }
         });
 
-        // --- 8. 1층(단일) 및 2층(이중) 장애물 생성 함수 ---
+        // --- 8. 1층 및 2층 장애물 생성 함수 ---
         function createBuoy(isTall) {
             const group = new THREE.Group();
             const redMat = new THREE.MeshStandardMaterial({ color: '#d90429', flatShading: true });
@@ -618,7 +694,6 @@
             
             const laneIdx = Math.floor(Math.random() * 3);
             const rand = Math.random();
-            // 경험치 3 이상부터 38% 확률로 2단 점프가 필요한 2층 장애물 등장!
             const isTall = exp >= 3 && Math.random() < 0.38;
             let obsMesh, obsType;
             
@@ -645,19 +720,62 @@
             });
         }
 
-        // 바다 분위기 전환 연출 (10점 단위 마일스톤)
+        // [교체된 구간 테마] 바다 분위기 + 파도 높이 + 상어 추격 거리가 함께 변하는 4개 해역
         const oceanThemes = [
-            { bg: '#0a2e46', water: '#006994', name: '에메랄드 해역' },
-            { bg: '#1d1e4e', water: '#274c77', name: '황혼의 심해' },
-            { bg: '#081c15', water: '#1b4332', name: '심연의 해구' }
+            {
+                bg: '#0b4f6c',
+                water: '#0081a7',
+                emissive: '#000000',
+                sun: '#fff3b0',
+                wavePower: 1.0,
+                sharkZ: 9.0,
+                banner: '산호초 맑은 바다'
+            },
+            {
+                bg: '#4a1942',
+                water: '#893168',
+                emissive: '#1a0514',
+                sun: '#ff9e00',
+                wavePower: 1.35,
+                sharkZ: 8.6,
+                banner: '붉은 노을 해협 (파도 상승!)'
+            },
+            {
+                bg: '#1b263b',
+                water: '#0d1b2a',
+                emissive: '#000000',
+                sun: '#778da9',
+                wavePower: 2.1,
+                sharkZ: 8.2,
+                banner: '폭풍우 소용돌이 해역 (거친 파도!)'
+            },
+            {
+                bg: '#03071e',
+                water: '#003566',
+                emissive: '#003f5c',
+                sun: '#00f5d4',
+                wavePower: 1.6,
+                sharkZ: 7.8,
+                banner: '발광 심연 (상어가 바짝 추격합니다!)'
+            }
         ];
+
+        function applyOceanTheme(theme) {
+            scene.background.set(theme.bg);
+            scene.fog.color.set(theme.bg);
+            oceanMat.color.set(theme.water);
+            oceanMat.emissive.set(theme.emissive);
+            directionalLight.color.set(theme.sun);
+            currentWavePower = theme.wavePower;
+            targetSharkZ = theme.sharkZ;
+        }
 
         function showZoneBanner(text) {
             zoneBanner.innerText = text;
             zoneBanner.style.opacity = '1';
             setTimeout(() => {
                 zoneBanner.style.opacity = '0';
-            }, 1800);
+            }, 2200);
         }
 
         // --- 9. 다시하기 기능 ---
@@ -683,9 +801,7 @@
             camera.fov = 75;
             camera.updateProjectionMatrix();
 
-            scene.background.set(oceanThemes[0].bg);
-            scene.fog.color.set(oceanThemes[0].bg);
-            oceanMat.color.set(oceanThemes[0].water);
+            applyOceanTheme(oceanThemes[0]);
             
             player.position.set(lanes[currentLane], playerBaseY, 5);
             player.rotation.set(0, 0, 0); 
@@ -704,14 +820,13 @@
             requestAnimationFrame(animate);
             const time = Date.now() * 0.004;
 
-            // 1) 실시간 3D 파도 출렁임 업데이트
+            // 1) 실시간 3D 파도 출렁임 업데이트 (해역별 파도 세기 반영)
             waveScroll += isGameStarted && !isGameOver ? currentObsSpeed * 0.14 : 0.05;
             for (let i = 0; i < oceanPos.count; i++) {
                 const bx = baseOceanCoords[i].x;
                 const bz = baseOceanCoords[i].z;
-                // 플레이어가 달리는 중앙 3차선 주변은 잔잔하게, 양옆 바다는 큰 파도로 출렁이게 설정
                 const edgeFactor = Math.min(1, Math.max(0.18, (Math.abs(bx) - 3.5) / 14));
-                const waveY = (Math.sin(bx * 0.25 + time) * 0.6 + Math.cos(bz * 0.16 + waveScroll) * 0.7) * edgeFactor;
+                const waveY = (Math.sin(bx * 0.25 + time) * 0.6 + Math.cos(bz * 0.16 + waveScroll) * 0.7) * edgeFactor * currentWavePower;
                 oceanPos.setY(i, waveY);
             }
             oceanPos.needsUpdate = true;
@@ -733,28 +848,32 @@
                 }
             }
 
-            // 로비 화면일 때 대기 애니메이션
+            // 로비 화면 대기 애니메이션
             if (!isGameStarted) {
                 player.position.y = playerBaseY + Math.sin(time * 1.2) * 0.07;
                 player.rotation.x = Math.sin(time * 0.8) * 0.05;
                 shark.position.y = 0.2 + Math.sin(time * 2) * 0.1;
+                seaProps.forEach(item => {
+                    item.mesh.position.y = Math.sin(time + item.phase) * 0.12;
+                });
                 renderer.render(scene, camera);
                 return;
             }
 
             if (!isGameOver) {
-                // 차선 물거품 라인 및 바다 암초 스크롤
                 laneMarkerGroup.position.z += currentObsSpeed * 0.5;
                 if (laneMarkerGroup.position.z > 4) laneMarkerGroup.position.z = 0;
 
-                rocks.forEach(rock => {
-                    rock.position.z += currentObsSpeed * 0.85;
-                    if (rock.position.z > 25) {
-                        rock.position.z = -180 - Math.random() * 60;
+                // 양옆 해상 오브젝트 스크롤 및 물결 흔들림
+                seaProps.forEach(item => {
+                    item.mesh.position.z += currentObsSpeed * 0.85;
+                    item.mesh.position.y = Math.sin(time * 1.1 + item.phase) * 0.14 * currentWavePower;
+                    if (item.mesh.position.z > 25) {
+                        item.mesh.position.z = -230 - Math.random() * 40;
                     }
                 });
 
-                // 버튼 꾹 누르기 연속 차선 이동 처리
+                // 버튼 꾹 누르기 연속 차선 이동
                 if (keysHeld.left || keysHeld.right) {
                     laneMoveTimer--;
                     if (laneMoveTimer <= 0) {
@@ -769,7 +888,6 @@
                     }
                 }
                 
-                // 배 움직임 및 물보라 생성
                 if (!isJumping) {
                     player.position.y = playerBaseY + Math.sin(time * 1.3) * 0.06;
                     player.rotation.x = Math.sin(time * 0.9) * 0.05;
@@ -779,12 +897,11 @@
                 }
                 player.position.x += (lanes[currentLane] - player.position.x) * 0.18;
 
-                // 1단 & 2단 점프 물리 처리
+                // 1단 & 2단 점프 물리
                 if (isJumping) {
                     player.position.y += jumpVelocity;
                     jumpVelocity += gravity;
 
-                    // 2단 점프 시 공중에서 멋지게 한 바퀴 회전
                     if (doubleJumpSpin > 0) {
                         const step = 0.28;
                         player.rotation.x -= step;
@@ -805,12 +922,12 @@
                     }
                 }
 
-                // 추격하는 상어 움직임
+                // 상어 추격 (해역 단계에 따라 배 뒤로 더 바짝 다가옴)
                 shark.position.x += (player.position.x - shark.position.x) * 0.06; 
+                shark.position.z += (targetSharkZ - shark.position.z) * 0.03;
                 shark.rotation.z = Math.sin(time * 1.3) * 0.12; 
                 shark.position.y = 0.2 + Math.sin(time * 2) * 0.1;
 
-                // 장애물 생성 및 이동
                 frameCount++;
                 if (frameCount % Math.floor(spawnInterval) === 0) spawnObstacle();
 
@@ -825,7 +942,6 @@
                         }
                     }
 
-                    // 충돌 판정 (1층 장애물은 y >= 1.5, 2층 장애물은 y >= 3.1 점프 필요)
                     const requiredClearHeight = obs.isTall ? 3.1 : 1.5;
                     if (Math.abs(obs.mesh.position.z - player.position.z) < 1.45) {
                         if (obs.lane === currentLane && player.position.y < requiredClearHeight) {
@@ -845,7 +961,6 @@
                         }
                     }
 
-                    // 장애물 통과 시 경험치 획득 및 난이도/분위기 상승
                     if (!obs.passed && obs.mesh.position.z > player.position.z + 1.5) {
                         obs.passed = true;
                         exp++;
@@ -854,19 +969,16 @@
                         currentObsSpeed = Math.min(2.1, currentObsSpeed + 0.025);
                         spawnInterval = Math.max(26, spawnInterval - 0.8);
 
-                        // 속도감에 맞춘 카메라 시야각 미세 확대
                         if (camera.fov < 84) {
                             camera.fov += 0.25;
                             camera.updateProjectionMatrix();
                         }
 
-                        // 10점마다 바다 분위기 변경으로 지루함 방지
                         if (exp % 10 === 0) {
                             const themeIdx = Math.floor(exp / 10) % oceanThemes.length;
-                            scene.background.set(oceanThemes[themeIdx].bg);
-                            scene.fog.color.set(oceanThemes[themeIdx].bg);
-                            oceanMat.color.set(oceanThemes[themeIdx].water);
-                            showZoneBanner(`SPEED UP! ${oceanThemes[themeIdx].name} 진입!`);
+                            const nextTheme = oceanThemes[themeIdx];
+                            applyOceanTheme(nextTheme);
+                            showZoneBanner(nextTheme.banner);
                         }
                     }
 
@@ -876,7 +988,6 @@
                     }
                 }
             } else {
-                // 게임 오버 연출
                 if (shark.position.z > player.position.z - 0.5) {
                     shark.position.x += (player.position.x - shark.position.x) * 0.2; 
                     shark.position.z -= 0.3; 
