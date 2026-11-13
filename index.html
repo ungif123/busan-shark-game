@@ -24,59 +24,153 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(7, 25, 40, 0.72);
+            background: rgba(7, 25, 40, 0.78);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             pointer-events: auto;
             z-index: 20;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(6px);
         }
 
         #lobby-title {
-            font-size: 70px;
+            font-size: 62px;
             color: #00f5d4;
             font-weight: bold;
             text-shadow: 0 0 20px #00f5d4, 0 0 40px #0077b6;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-align: center;
         }
 
         #lobby-desc {
-            font-size: 20px;
+            font-size: 18px;
             color: #e0f7fa;
             text-align: center;
-            line-height: 1.6;
-            margin-bottom: 35px;
+            line-height: 1.5;
+            margin-bottom: 18px;
             text-shadow: 2px 2px 4px #000;
         }
 
         .controls-box {
-            margin: 16px auto;
-            padding: 14px 28px;
+            margin: 10px auto;
+            padding: 10px 22px;
             background: rgba(0, 15, 30, 0.6);
             border: 1px solid rgba(0, 245, 212, 0.4);
             border-radius: 12px;
             display: inline-block;
-            font-size: 18px;
-            line-height: 1.8;
+            font-size: 16px;
+            line-height: 1.7;
             text-align: left;
         }
 
         .lang-tag {
             color: #00f5d4;
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             display: inline-block;
-            width: 45px;
+            width: 42px;
         }
 
         .highlight { color: #ffb703; font-weight: bold; }
 
+        /* 닉네임 입력창 & 랭킹 보드 컨테이너 */
+        .lobby-panel {
+            display: flex;
+            gap: 24px;
+            align-items: stretch;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nickname-box, .ranking-box {
+            background: rgba(0, 18, 36, 0.8);
+            border: 2px solid rgba(0, 245, 212, 0.5);
+            border-radius: 14px;
+            padding: 16px 22px;
+            box-shadow: 0 0 18px rgba(0, 245, 212, 0.15);
+        }
+
+        .nickname-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 240px;
+        }
+
+        .panel-title {
+            color: #00f5d4;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        #nickname-input {
+            width: 200px;
+            padding: 10px 14px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00f5d4;
+            border-radius: 8px;
+            outline: none;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        #nickname-input::placeholder {
+            color: rgba(224, 247, 250, 0.45);
+            font-weight: normal;
+        }
+
+        #nickname-input:focus {
+            background: rgba(0, 245, 212, 0.15);
+            box-shadow: 0 0 12px #00f5d4;
+        }
+
+        .nickname-hint {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #90e0ef;
+        }
+
+        .ranking-box {
+            min-width: 270px;
+        }
+
+        #ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+            font-size: 16px;
+            color: #e0f7fa;
+        }
+
+        #ranking-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #ranking-list li:last-child {
+            border-bottom: none;
+        }
+
+        .rank-1 { color: #ffd166; font-weight: bold; }
+        .rank-2 { color: #e0e1dd; font-weight: bold; }
+        .rank-3 { color: #e09f3e; font-weight: bold; }
+
         #start-btn {
-            padding: 15px 60px;
-            font-size: 28px;
+            padding: 14px 56px;
+            font-size: 26px;
             font-weight: bold;
             color: #071928;
             background-color: #00f5d4;
@@ -97,20 +191,38 @@
             position: absolute;
             top: 20px; left: 25px;
             color: #00f5d4;
-            font-size: 26px;
+            font-size: 24px;
             font-weight: bold;
             text-shadow: 2px 2px 6px #000;
             display: none;
         }
 
+        #player-tag {
+            color: #ffd166;
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
         #jump-indicator {
             position: absolute;
-            top: 58px; left: 25px;
+            top: 82px; left: 25px;
             color: #ffb703;
             font-size: 16px;
             font-weight: bold;
             text-shadow: 1px 1px 4px #000;
             display: none;
+        }
+
+        /* 인게임 우측 상단 실시간 1위 표시 */
+        #best-hud {
+            position: absolute;
+            top: 20px; right: 25px;
+            color: #ffd166;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 6px #000;
+            display: none;
+            text-align: right;
         }
 
         #zone-banner {
@@ -126,38 +238,108 @@
             text-align: center;
         }
 
-        #message-display {
+        /* 게임 오버 결과 및 랭킹 오버레이 */
+        #gameover-panel {
             position: absolute;
-            top: 35%; left: 50%;
+            top: 48%; left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 65px;
-            font-weight: bold;
-            text-shadow: 3px 3px 0px #000;
             display: none;
-            text-align: center;
+            flex-direction: column;
+            align-items: center;
+            pointer-events: auto;
+            z-index: 15;
         }
 
-        #restart-btn {
-            position: absolute;
-            top: 55%; left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 15px 40px;
-            font-size: 24px;
+        #message-display {
+            font-size: 58px;
+            font-weight: bold;
+            text-shadow: 3px 3px 0px #000;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        #gameover-ranking {
+            background: rgba(7, 25, 40, 0.88);
+            border: 2px solid #00f5d4;
+            border-radius: 14px;
+            padding: 14px 26px;
+            min-width: 290px;
+            margin-bottom: 20px;
+            color: #fff;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+        }
+
+        #gameover-ranking h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+            color: #00f5d4;
+            font-size: 20px;
+        }
+
+        #gameover-ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 17px;
+        }
+
+        #gameover-ranking-list li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        #gameover-ranking-list li:last-child {
+            border-bottom: none;
+        }
+
+        .new-badge {
+            background: #ff006e;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .gameover-buttons {
+            display: flex;
+            gap: 14px;
+        }
+
+        #restart-btn, #lobby-btn {
+            padding: 14px 32px;
+            font-size: 22px;
             font-weight: bold;
             color: #fff;
-            background-color: #d90429;
             border: 3px solid #fff;
             border-radius: 10px;
             cursor: pointer;
-            display: none;
-            pointer-events: auto;
-            box-shadow: 0 0 15px #d90429;
             transition: all 0.2s;
+        }
+
+        #restart-btn {
+            background-color: #d90429;
+            box-shadow: 0 0 15px #d90429;
         }
 
         #restart-btn:hover {
             background-color: #ffb703;
             box-shadow: 0 0 25px #ffb703;
+            color: #071928;
+            border-color: #071928;
+        }
+
+        #lobby-btn {
+            background-color: #0077b6;
+            box-shadow: 0 0 15px #0077b6;
+        }
+
+        #lobby-btn:hover {
+            background-color: #00f5d4;
+            box-shadow: 0 0 25px #00f5d4;
             color: #071928;
             border-color: #071928;
         }
@@ -172,22 +354,136 @@
                 <div><span class="lang-tag">[KR]</span><span class="highlight">[A / D (꾹 누르기)] 연속 이동 &nbsp;|&nbsp; [Space x1~2] 1단·2단 점프</span></div>
                 <div><span class="lang-tag">[EN]</span><span class="highlight">[A / D (Hold)] Move &nbsp;|&nbsp; [Space x1~2] Single / Double Jump</span></div>
                 <div><span class="lang-tag">[JP]</span><span class="highlight">[A / D (長押し)] 連続移動 &nbsp;|&nbsp; [Space x1~2] 1段・2段ジャンプ</span></div>
-            </div><br>
-            높은 2층 장애물은 <b>공중에서 Space를 한 번 더</b> 눌러 넘어야 합니다!
+            </div>
         </div>
+
+        <div class="lobby-panel">
+            <div class="nickname-box">
+                <div class="panel-title">⚓ 선장 닉네임</div>
+                <input type="text" id="nickname-input" maxlength="10" placeholder="닉네임 입력 (최대 10자)">
+                <div class="nickname-hint">미입력 시 '항해사'로 출항합니다</div>
+            </div>
+
+            <div class="ranking-box">
+                <div class="panel-title">🏆 명예의 전당 TOP 5</div>
+                <ul id="ranking-list"></ul>
+            </div>
+        </div>
+
         <button id="start-btn">게임 시작</button>
     </div>
 
     <div id="ui-layer">
-        <div id="exp-display">경험치: <span id="exp-value">0</span></div>
+        <div id="exp-display">
+            <div id="player-tag">선장: <span id="current-nickname">항해사</span></div>
+            경험치: <span id="exp-value">0</span>
+        </div>
         <div id="jump-indicator">점프: ● ●</div>
+        <div id="best-hud">최고 기록: <span id="best-score-value">0</span></div>
         <div id="zone-banner"></div>
-        <div id="message-display"></div>
-        <button id="restart-btn">다시하기 [Enter]</button>
+
+        <div id="gameover-panel">
+            <div id="message-display"></div>
+            <div id="gameover-ranking">
+                <h3>🏆 실시간 랭킹 TOP 5</h3>
+                <ul id="gameover-ranking-list"></ul>
+            </div>
+            <div class="gameover-buttons">
+                <button id="restart-btn">다시하기 [Enter]</button>
+                <button id="lobby-btn">로비로</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
+        // --- 0. 닉네임 및 로컬 랭킹 시스템 ---
+        const RANKING_STORAGE_KEY = 'bukang_avoid_3d_rankings_v1';
+        const LAST_NICKNAME_KEY = 'bukang_avoid_3d_last_nick';
+
+        const nicknameInput = document.getElementById('nickname-input');
+        const rankingListEl = document.getElementById('ranking-list');
+        const gameoverRankingListEl = document.getElementById('gameover-ranking-list');
+        const currentNicknameSpan = document.getElementById('current-nickname');
+        const bestHud = document.getElementById('best-hud');
+        const bestScoreValueSpan = document.getElementById('best-score-value');
+
+        let playerNickname = '항해사';
+
+        // 이전 닉네임 불러오기
+        const savedNick = localStorage.getItem(LAST_NICKNAME_KEY);
+        if (savedNick) {
+            nicknameInput.value = savedNick;
+        }
+
+        function loadRankings() {
+            try {
+                const raw = localStorage.getItem(RANKING_STORAGE_KEY);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function saveScoreToRanking(name, score) {
+            const rankings = loadRankings();
+            const entryId = Date.now() + Math.random();
+            rankings.push({ id: entryId, name: name, score: score });
+            rankings.sort((a, b) => b.score - a.score);
+            const top5 = rankings.slice(0, 5);
+            localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(top5));
+            return { top5, entryId };
+        }
+
+        function renderRankingList(targetUl, rankings, highlightId = null) {
+            targetUl.innerHTML = '';
+            if (rankings.length === 0) {
+                const li = document.createElement('li');
+                li.style.justifyContent = 'center';
+                li.style.color = '#90e0ef';
+                li.innerText = '아직 기록이 없습니다. 첫 1위에 도전하세요!';
+                targetUl.appendChild(li);
+                return;
+            }
+
+            const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
+            rankings.forEach((item, idx) => {
+                const li = document.createElement('li');
+                if (idx === 0) li.className = 'rank-1';
+                else if (idx === 1) li.className = 'rank-2';
+                else if (idx === 2) li.className = 'rank-3';
+
+                const leftSpan = document.createElement('span');
+                leftSpan.textContent = `${medals[idx]} ${item.name}`;
+
+                if (highlightId && item.id === highlightId) {
+                    const badge = document.createElement('span');
+                    badge.className = 'new-badge';
+                    badge.textContent = 'NEW';
+                    leftSpan.appendChild(badge);
+                }
+
+                const rightSpan = document.createElement('span');
+                rightSpan.textContent = `${item.score}점`;
+
+                li.appendChild(leftSpan);
+                li.appendChild(rightSpan);
+                targetUl.appendChild(li);
+            });
+        }
+
+        function updateBestHud() {
+            const rankings = loadRankings();
+            const topScore = rankings.length > 0 ? rankings[0].score : 0;
+            bestScoreValueSpan.innerText = `${topScore}점`;
+        }
+
+        // 초기 로비 랭킹 렌더링
+        renderRankingList(rankingListEl, loadRankings());
+        updateBestHud();
+
         // --- 1. 3D 공간 및 분위기 설정 ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color('#0b4f6c');
@@ -213,7 +509,7 @@
         backLight.position.set(-15, 10, -20);
         scene.add(backLight);
 
-        // --- 3. 진짜 바다 느낌의 3D 출렁이는 파도 & 해상 배경 오브젝트 ---
+        // --- 3. 3D 출렁이는 파도 & 해상 배경 오브젝트 ---
         const oceanGeo = new THREE.PlaneGeometry(180, 260, 44, 60);
         oceanGeo.rotateX(-Math.PI / 2);
         const oceanMat = new THREE.MeshStandardMaterial({
@@ -235,7 +531,6 @@
             });
         }
 
-        // 차선 구분 물거품 라인
         const laneMarkerGroup = new THREE.Group();
         const foamMat = new THREE.MeshBasicMaterial({ color: 0xade8f4, transparent: true, opacity: 0.35 });
         for (let x of [-1.5, 1.5]) {
@@ -248,7 +543,6 @@
         }
         scene.add(laneMarkerGroup);
 
-        // 해상 배경 오브젝트 3종 (야자수 섬, 등대 부표, 난파선)
         const seaProps = [];
 
         function createPalmIsland() {
@@ -360,7 +654,7 @@
             spawnSeaProp(i % 2 === 0 ? -1 : 1, -20 - i * 18);
         }
 
-        // 물보라(물거품) 파티클 시스템
+        // 물보라 파티클 시스템
         const wakeParticles = [];
         const wakeGeo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
         const wakeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 });
@@ -527,8 +821,10 @@
         const expValueSpan = document.getElementById('exp-value');
         const jumpIndicator = document.getElementById('jump-indicator');
         const zoneBanner = document.getElementById('zone-banner');
+        const gameoverPanel = document.getElementById('gameover-panel');
         const messageDisplay = document.getElementById('message-display');
         const restartBtn = document.getElementById('restart-btn');
+        const lobbyBtn = document.getElementById('lobby-btn');
         
         let isGameStarted = false; 
         let isGameOver = false;
@@ -577,12 +873,64 @@
             }
         }
 
-        // --- 7. 시작 및 조작 이벤트 ---
-        startBtn.addEventListener('click', () => {
+        function resetGameWorld() {
+            obstacles.forEach(obs => scene.remove(obs.mesh));
+            obstacles = [];
+
+            wakeParticles.forEach(p => scene.remove(p.mesh));
+            wakeParticles.length = 0;
+
+            isGameOver = false;
+            exp = 0;
+            frameCount = 0;
+            currentLane = 1;
+            isJumping = false;
+            jumpCount = 0;
+            doubleJumpSpin = 0;
+            keysHeld.left = false;
+            keysHeld.right = false;
+            
+            currentObsSpeed = 0.9;
+            spawnInterval = 52;
+            camera.fov = 75;
+            camera.updateProjectionMatrix();
+
+            applyOceanTheme(oceanThemes[0]);
+            
+            player.position.set(lanes[currentLane], playerBaseY, 5);
+            player.rotation.set(0, 0, 0); 
+            
+            shark.position.set(lanes[currentLane], 0.2, 9);
+            shark.rotation.set(0, 0, 0);
+
+            expValueSpan.innerText = exp;
+            updateJumpUI();
+            updateBestHud();
+            gameoverPanel.style.display = 'none';
+        }
+
+        function startGameFromLobby() {
+            const rawNick = nicknameInput.value.trim();
+            playerNickname = rawNick.length > 0 ? rawNick : '항해사';
+            localStorage.setItem(LAST_NICKNAME_KEY, rawNick);
+            currentNicknameSpan.innerText = playerNickname;
+
+            resetGameWorld();
             lobbyScreen.style.display = 'none';
             expDisplay.style.display = 'block';
             jumpIndicator.style.display = 'block';
+            bestHud.style.display = 'block';
             isGameStarted = true;
+        }
+
+        // --- 7. 시작 및 조작 이벤트 ---
+        startBtn.addEventListener('click', startGameFromLobby);
+
+        nicknameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                startGameFromLobby();
+            }
         });
 
         window.addEventListener('keydown', (e) => {
@@ -720,7 +1068,6 @@
             });
         }
 
-        // [교체된 구간 테마] 바다 분위기 + 파도 높이 + 상어 추격 거리가 함께 변하는 4개 해역
         const oceanThemes = [
             {
                 bg: '#0b4f6c',
@@ -778,41 +1125,40 @@
             }, 2200);
         }
 
-        // --- 9. 다시하기 기능 ---
+        function handleGameOver(obsType) {
+            isGameOver = true;
+
+            if (obsType === '부표') {
+                messageDisplay.innerHTML = "부표에 걸렸습니다!";
+            } else if (obsType === '해파리') {
+                messageDisplay.innerHTML = "해파리에 걸렸습니다!";
+            } else {
+                messageDisplay.innerHTML = "상어에게 먹혔습니다!";
+            }
+            messageDisplay.style.color = "#d90429";
+
+            // 랭킹 저장 및 TOP 5 갱신
+            const { top5, entryId } = saveScoreToRanking(playerNickname, exp);
+            renderRankingList(gameoverRankingListEl, top5, entryId);
+            renderRankingList(rankingListEl, top5);
+            updateBestHud();
+
+            gameoverPanel.style.display = 'flex';
+        }
+
+        // --- 9. 다시하기 & 로비로 기능 ---
         restartBtn.addEventListener('click', () => {
-            obstacles.forEach(obs => scene.remove(obs.mesh));
-            obstacles = [];
+            resetGameWorld();
+        });
 
-            wakeParticles.forEach(p => scene.remove(p.mesh));
-            wakeParticles.length = 0;
-
-            isGameOver = false;
-            exp = 0;
-            frameCount = 0;
-            currentLane = 1;
-            isJumping = false;
-            jumpCount = 0;
-            doubleJumpSpin = 0;
-            keysHeld.left = false;
-            keysHeld.right = false;
-            
-            currentObsSpeed = 0.9;
-            spawnInterval = 52;
-            camera.fov = 75;
-            camera.updateProjectionMatrix();
-
-            applyOceanTheme(oceanThemes[0]);
-            
-            player.position.set(lanes[currentLane], playerBaseY, 5);
-            player.rotation.set(0, 0, 0); 
-            
-            shark.position.set(lanes[currentLane], 0.2, 9);
-            shark.rotation.set(0, 0, 0);
-
-            expValueSpan.innerText = exp;
-            updateJumpUI();
-            messageDisplay.style.display = "none";
-            restartBtn.style.display = "none";
+        lobbyBtn.addEventListener('click', () => {
+            resetGameWorld();
+            isGameStarted = false;
+            expDisplay.style.display = 'none';
+            jumpIndicator.style.display = 'none';
+            bestHud.style.display = 'none';
+            renderRankingList(rankingListEl, loadRankings());
+            lobbyScreen.style.display = 'flex';
         });
 
         // --- 10. 메인 루프 ---
@@ -820,7 +1166,6 @@
             requestAnimationFrame(animate);
             const time = Date.now() * 0.004;
 
-            // 1) 실시간 3D 파도 출렁임 업데이트 (해역별 파도 세기 반영)
             waveScroll += isGameStarted && !isGameOver ? currentObsSpeed * 0.14 : 0.05;
             for (let i = 0; i < oceanPos.count; i++) {
                 const bx = baseOceanCoords[i].x;
@@ -832,7 +1177,6 @@
             oceanPos.needsUpdate = true;
             oceanGeo.computeVertexNormals();
 
-            // 물보라 파티클 애니메이션
             for (let i = wakeParticles.length - 1; i >= 0; i--) {
                 const wp = wakeParticles[i];
                 wp.mesh.position.x += wp.vx;
@@ -848,7 +1192,6 @@
                 }
             }
 
-            // 로비 화면 대기 애니메이션
             if (!isGameStarted) {
                 player.position.y = playerBaseY + Math.sin(time * 1.2) * 0.07;
                 player.rotation.x = Math.sin(time * 0.8) * 0.05;
@@ -864,7 +1207,6 @@
                 laneMarkerGroup.position.z += currentObsSpeed * 0.5;
                 if (laneMarkerGroup.position.z > 4) laneMarkerGroup.position.z = 0;
 
-                // 양옆 해상 오브젝트 스크롤 및 물결 흔들림
                 seaProps.forEach(item => {
                     item.mesh.position.z += currentObsSpeed * 0.85;
                     item.mesh.position.y = Math.sin(time * 1.1 + item.phase) * 0.14 * currentWavePower;
@@ -873,7 +1215,6 @@
                     }
                 });
 
-                // 버튼 꾹 누르기 연속 차선 이동
                 if (keysHeld.left || keysHeld.right) {
                     laneMoveTimer--;
                     if (laneMoveTimer <= 0) {
@@ -897,7 +1238,6 @@
                 }
                 player.position.x += (lanes[currentLane] - player.position.x) * 0.18;
 
-                // 1단 & 2단 점프 물리
                 if (isJumping) {
                     player.position.y += jumpVelocity;
                     jumpVelocity += gravity;
@@ -922,7 +1262,6 @@
                     }
                 }
 
-                // 상어 추격 (해역 단계에 따라 배 뒤로 더 바짝 다가옴)
                 shark.position.x += (player.position.x - shark.position.x) * 0.06; 
                 shark.position.z += (targetSharkZ - shark.position.z) * 0.03;
                 shark.rotation.z = Math.sin(time * 1.3) * 0.12; 
@@ -945,19 +1284,7 @@
                     const requiredClearHeight = obs.isTall ? 3.1 : 1.5;
                     if (Math.abs(obs.mesh.position.z - player.position.z) < 1.45) {
                         if (obs.lane === currentLane && player.position.y < requiredClearHeight) {
-                            isGameOver = true;
-                            
-                            if (obs.type === '부표') {
-                                messageDisplay.innerHTML = "부표에<br>걸렸습니다!";
-                            } else if (obs.type === '해파리') {
-                                messageDisplay.innerHTML = "해파리에<br>걸렸습니다!";
-                            } else {
-                                messageDisplay.innerHTML = "상어에게<br>먹혔습니다!";
-                            }
-                            
-                            messageDisplay.style.color = "#d90429";
-                            messageDisplay.style.display = "block";
-                            restartBtn.style.display = "block";
+                            handleGameOver(obs.type);
                         }
                     }
 
