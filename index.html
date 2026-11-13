@@ -48,8 +48,29 @@
             color: #e0e0e0;
             text-align: center;
             line-height: 1.6;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
             text-shadow: 2px 2px 4px #000;
+        }
+
+        /* 다국어 조작방법 박스 스타일 */
+        .controls-box {
+            margin: 18px auto;
+            padding: 14px 28px;
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(0, 255, 255, 0.35);
+            border-radius: 12px;
+            display: inline-block;
+            font-size: 19px;
+            line-height: 1.8;
+            text-align: left;
+        }
+
+        .lang-tag {
+            color: #00ffff;
+            font-size: 15px;
+            font-weight: bold;
+            display: inline-block;
+            width: 45px;
         }
 
         .highlight { color: #ffb703; font-weight: bold; }
@@ -125,7 +146,11 @@
         <div id="lobby-title">부캉이 피하기 3D</div>
         <div id="lobby-desc">
             무시무시한 상어가 쫓아옵니다!<br>
-            <span class="highlight">[A] 왼쪽 &nbsp; [D] 오른쪽 &nbsp; [Space] 점프</span><br>
+            <div class="controls-box">
+                <div><span class="lang-tag">[KR]</span><span class="highlight">[A] 왼쪽 &nbsp; [D] 오른쪽 &nbsp; [Space] 점프</span></div>
+                <div><span class="lang-tag">[EN]</span><span class="highlight">[A] Left &nbsp; [D] Right &nbsp; [Space] Jump</span></div>
+                <div><span class="lang-tag">[JP]</span><span class="highlight">[A] 左 &nbsp; [D] 右 &nbsp; [Space] ジャンプ</span></div>
+            </div><br>
             시간이 지날수록 빨라집니다. 최대한 오래 살아남으세요!
         </div>
         <button id="start-btn">게임 시작</button>
@@ -334,9 +359,8 @@
         let jumpVelocity = 0;
         const gravity = -0.02;
 
-        // [난이도 완화 적용]
-        let currentObsSpeed = 0.9; // 시작 속도 (기존 1.2 ➔ 0.9)
-        let spawnInterval = 50;   // 시작 생성 주기 (기존 40 ➔ 50)
+        let currentObsSpeed = 0.9;
+        let spawnInterval = 50;
 
         // --- 7. 시작 및 조작 이벤트 ---
         startBtn.addEventListener('click', () => {
@@ -450,7 +474,6 @@
             currentLane = 1;
             isJumping = false;
             
-            // 완화된 난이도로 초기화
             currentObsSpeed = 0.9;
             spawnInterval = 50;
             
@@ -538,9 +561,8 @@
                         exp++;
                         expValueSpan.innerText = exp;
                         
-                        // [난이도 상승 완화]
-                        currentObsSpeed += 0.025; // 속도 증가 폭 완화 (기존 0.05 ➔ 0.025)
-                        spawnInterval = Math.max(25, spawnInterval - 0.8); // 최소 간격 완화 (기존 15 ➔ 25)
+                        currentObsSpeed += 0.025;
+                        spawnInterval = Math.max(25, spawnInterval - 0.8);
                     }
 
                     if (obs.mesh.position.z > 15) {
