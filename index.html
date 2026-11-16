@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>부캉이 피하기 3D</title>
+
     <style>
         * {
             box-sizing: border-box;
@@ -14,7 +15,7 @@
             margin: 0;
             overflow: hidden;
             background-color: #071928;
-            font-family: '맑은 고딕', sans-serif;
+            font-family: '맑은 고딕', -apple-system, BlinkMacSystemFont, sans-serif;
             touch-action: none;
             user-select: none;
             -webkit-user-select: none;
@@ -32,7 +33,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(7, 25, 40, 0.8);
+            background: rgba(7, 25, 40, 0.82);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -40,7 +41,7 @@
             pointer-events: auto;
             z-index: 20;
             backdrop-filter: blur(6px);
-            padding: 16px;
+            padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
             overflow-y: auto;
             touch-action: pan-y;
         }
@@ -206,7 +207,8 @@
 
         #exp-display {
             position: absolute;
-            top: 16px; left: 18px;
+            top: calc(16px + env(safe-area-inset-top));
+            left: 18px;
             color: #00f5d4;
             font-size: clamp(19px, 4vw, 24px);
             font-weight: bold;
@@ -222,7 +224,8 @@
 
         #jump-indicator {
             position: absolute;
-            top: 72px; left: 18px;
+            top: calc(72px + env(safe-area-inset-top));
+            left: 18px;
             color: #ffb703;
             font-size: clamp(13px, 3vw, 16px);
             font-weight: bold;
@@ -230,10 +233,10 @@
             display: none;
         }
 
-        /* 인게임 우측 상단 1위 표시 */
         #best-hud {
             position: absolute;
-            top: 16px; right: 18px;
+            top: calc(16px + env(safe-area-inset-top));
+            right: 18px;
             color: #ffd166;
             font-size: clamp(14px, 3.2vw, 20px);
             font-weight: bold;
@@ -259,7 +262,7 @@
         /* 모바일 & 터치 컨트롤 패드 */
         #mobile-controls {
             position: absolute;
-            bottom: 24px;
+            bottom: calc(24px + env(safe-area-inset-bottom));
             left: 0;
             width: 100%;
             padding: 0 22px;
@@ -492,9 +495,17 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- 0. 닉네임 및 TOP 5 랭킹 시스템 ---
-        const RANKING_STORAGE_KEY = 'bukang_avoid_3d_rankings_v2';
+        // --- 0. 닉네임 및 다중 브라우저/기기 영구 랭킹 시스템 ---
+        // PC·모바일·사파리·크롬 등 완전히 분리된 기기 간 실시간 공유까지 원할 경우
+        // 무료 Firebase Realtime Database URL을 아래에 입력하세요.
+        // 예: "https://내프로젝트-default-rtdb.firebaseio.com/bukang_rankings.json"
+        const CLOUD_RANKING_URL = "";
+
+        const RANKING_STORAGE_KEY = 'bukang_avoid_3d_rankings_v3';
         const LAST_NICKNAME_KEY = 'bukang_avoid_3d_last_nick';
+        const WINDOW_NAME_PREFIX = 'BUKANG_RANK_V3:';
+        const IDB_NAME = 'BukangAvoid3DDB';
+        const IDB_STORE = 'rankings';
 
         const nicknameInput = document.getElementById('nickname-input');
         const rankingListEl = document.getElementById('ranking-list');
@@ -504,50 +515,180 @@
         const bestScoreValueSpan = document.getElementById('best-score-value');
 
         let playerNickname = '항해사';
+        let cachedRankings = [];
 
-        const savedNick = localStorage.getItem(LAST_NICKNAME_KEY);
-        if (savedNick) {
-            nicknameInput.value = savedNick;
+        try {
+            const savedNick = localStorage.getItem(LAST_NICKNAME_KEY);
+            if (savedNick) nicknameInput.value = savedNick;
+        } catch (e) {}
+
+        function mergeRankings(...lists) {
+            const bestByName = new Map();
+            lists.flat().forEach(item => {
+                if (!item || typeof item.name !== 'string' || typeof item.score !== 'number') return;
+                const cleanName = item.name.trim().slice(0, 10);
+                if (!cleanName || isNaN(item.score)) return;
+                const prev = bestByName.get(cleanName);
+                if (prev === undefined || item.score > prev) {
+                    bestByName.set(cleanName, item.score);
+                }
+            });
+            return Array.from(bestByName.entries())
+                .map(([name, score]) => ({ name, score }))
+                .sort((a, b) => b.score - a.score);
         }
 
-        function loadRankings() {
+        // 저장소 1: localStorage
+        function readFromLocalStorage() {
             try {
-                const raw = localStorage.getItem(RANKING_STORAGE_KEY) || localStorage.getItem('bukang_avoid_3d_rankings_v1');
+                const raw = localStorage.getItem(RANKING_STORAGE_KEY);
                 if (!raw) return [];
                 const parsed = JSON.parse(raw);
-                if (!Array.isArray(parsed)) return [];
-                return parsed.sort((a, b) => b.score - a.score).slice(0, 5);
+                return Array.isArray(parsed) ? mergeRankings(parsed) : [];
             } catch (e) {
                 return [];
             }
         }
 
-        function saveScoreToRanking(name, score) {
-            const rankings = loadRankings();
-            const existingIdx = rankings.findIndex(item => item.name === name);
-            let isUpdated = false;
+        function writeToLocalStorage(list) {
+            try {
+                localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(list.slice(0, 20)));
+            } catch (e) {}
+        }
 
-            if (existingIdx !== -1) {
-                if (score > rankings[existingIdx].score) {
-                    rankings[existingIdx].score = score;
-                    isUpdated = true;
+        // 저장소 2: IndexedDB (Safari ITP 및 로컬/인앱 브라우저 보호)
+        function openRankingIDB() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) return reject();
+                try {
+                    const req = indexedDB.open(IDB_NAME, 1);
+                    req.onupgradeneeded = () => {
+                        const db = req.result;
+                        if (!db.objectStoreNames.contains(IDB_STORE)) {
+                            db.createObjectStore(IDB_STORE);
+                        }
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject();
+                } catch (e) {
+                    reject();
                 }
-            } else {
-                rankings.push({ name: name, score: score });
-                isUpdated = true;
+            });
+        }
+
+        async function readFromIDB() {
+            try {
+                const db = await openRankingIDB();
+                return await new Promise((resolve) => {
+                    const tx = db.transaction(IDB_STORE, 'readonly');
+                    const store = tx.objectStore(IDB_STORE);
+                    const getReq = store.get('top');
+                    getReq.onsuccess = () => {
+                        const val = getReq.result;
+                        resolve(Array.isArray(val) ? mergeRankings(val) : []);
+                    };
+                    getReq.onerror = () => resolve([]);
+                });
+            } catch (e) {
+                return [];
             }
+        }
 
-            rankings.sort((a, b) => b.score - a.score);
-            const top5 = rankings.slice(0, 5);
-            localStorage.setItem(RANKING_STORAGE_KEY, JSON.stringify(top5));
+        async function writeToIDB(list) {
+            try {
+                const db = await openRankingIDB();
+                const tx = db.transaction(IDB_STORE, 'readwrite');
+                tx.objectStore(IDB_STORE).put(list.slice(0, 20), 'top');
+            } catch (e) {}
+        }
 
-            const inTop5 = top5.some(item => item.name === name && item.score === score);
-            return { top5, highlightName: (isUpdated && inTop5) ? name : null };
+        // 저장소 3: window.name (시크릿 모드 및 저장소 제한 브라우저 백업)
+        function readFromWindowName() {
+            try {
+                if (typeof window.name === 'string' && window.name.startsWith(WINDOW_NAME_PREFIX)) {
+                    const parsed = JSON.parse(window.name.slice(WINDOW_NAME_PREFIX.length));
+                    return Array.isArray(parsed) ? mergeRankings(parsed) : [];
+                }
+            } catch (e) {}
+            return [];
+        }
+
+        function writeToWindowName(list) {
+            try {
+                window.name = WINDOW_NAME_PREFIX + JSON.stringify(list.slice(0, 20));
+            } catch (e) {}
+        }
+
+        // 저장소 4: URL 해시 (#r=...) - Safari로 열기 / 다른 브라우저 전환 시 자동 승계
+        function readFromUrlHash() {
+            try {
+                const hash = window.location.hash || '';
+                const match = hash.match(/[#&]r=([A-Za-z0-9\-_]+)/);
+                if (!match) return [];
+                const b64 = match[1].replace(/-/g, '+').replace(/_/g, '/');
+                const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+                const jsonStr = decodeURIComponent(escape(atob(padded)));
+                const parsed = JSON.parse(jsonStr);
+                if (!Array.isArray(parsed)) return [];
+                return mergeRankings(parsed.map(pair => ({
+                    name: Array.isArray(pair) ? pair[0] : pair.name,
+                    score: Array.isArray(pair) ? pair[1] : pair.score
+                })));
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function writeToUrlHash(list) {
+            try {
+                const compact = list.slice(0, 10).map(item => [item.name, item.score]);
+                if (compact.length === 0) return;
+                const jsonStr = JSON.stringify(compact);
+                const b64 = btoa(unescape(encodeURIComponent(jsonStr)))
+                    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                history.replaceState(null, '', '#r=' + b64);
+            } catch (e) {}
+        }
+
+        // 저장소 5: 클라우드 데이터베이스
+        async function fetchCloudRankings() {
+            if (!CLOUD_RANKING_URL) return [];
+            try {
+                const res = await fetch(CLOUD_RANKING_URL, { cache: 'no-store' });
+                if (!res.ok) return [];
+                const data = await res.json();
+                if (!data) return [];
+                if (Array.isArray(data)) return mergeRankings(data);
+                if (typeof data === 'object') return mergeRankings(Object.values(data));
+                return [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async function pushCloudRankings(mergedList) {
+            if (!CLOUD_RANKING_URL || mergedList.length === 0) return;
+            try {
+                await fetch(CLOUD_RANKING_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mergedList.slice(0, 20))
+                });
+            } catch (e) {}
+        }
+
+        function persistAllLocalLayers(list) {
+            cachedRankings = list;
+            writeToLocalStorage(list);
+            writeToIDB(list);
+            writeToWindowName(list);
+            writeToUrlHash(list);
         }
 
         function renderRankingList(targetUl, rankings, highlightName = null) {
+            const top5 = rankings.slice(0, 5);
             targetUl.innerHTML = '';
-            if (rankings.length === 0) {
+            if (top5.length === 0) {
                 const li = document.createElement('li');
                 li.style.justifyContent = 'center';
                 li.style.color = '#90e0ef';
@@ -557,7 +698,7 @@
             }
 
             const medals = ['🥇', '🥈', '🥉', '4위', '5위'];
-            rankings.forEach((item, idx) => {
+            top5.forEach((item, idx) => {
                 const li = document.createElement('li');
                 if (idx === 0) li.className = 'rank-1';
                 else if (idx === 1) li.className = 'rank-2';
@@ -582,17 +723,89 @@
             });
         }
 
-        function updateBestHud() {
-            const rankings = loadRankings();
-            if (rankings.length > 0) {
-                bestScoreValueSpan.innerText = `${rankings[0].score}점 (${rankings[0].name})`;
+        function updateBestHud(rankings = null) {
+            const list = rankings || cachedRankings;
+            if (list.length > 0) {
+                bestScoreValueSpan.innerText = `${list[0].score}점 (${list[0].name})`;
             } else {
                 bestScoreValueSpan.innerText = '0점';
             }
         }
 
-        renderRankingList(rankingListEl, loadRankings());
-        updateBestHud();
+        async function syncAllRankings() {
+            const syncLocal = mergeRankings(
+                cachedRankings,
+                readFromLocalStorage(),
+                readFromWindowName(),
+                readFromUrlHash()
+            );
+            cachedRankings = syncLocal;
+            renderRankingList(rankingListEl, syncLocal);
+            updateBestHud(syncLocal);
+
+            const idbList = await readFromIDB();
+            const mergedLocal = mergeRankings(cachedRankings, idbList);
+            persistAllLocalLayers(mergedLocal);
+            renderRankingList(rankingListEl, mergedLocal);
+            updateBestHud(mergedLocal);
+
+            if (!CLOUD_RANKING_URL) return mergedLocal;
+
+            const cloudList = await fetchCloudRankings();
+            const fullMerged = mergeRankings(mergedLocal, cloudList);
+            persistAllLocalLayers(fullMerged);
+            renderRankingList(rankingListEl, fullMerged);
+            updateBestHud(fullMerged);
+
+            if (fullMerged.length > cloudList.length || JSON.stringify(fullMerged.slice(0, 5)) !== JSON.stringify(cloudList.slice(0, 5))) {
+                pushCloudRankings(fullMerged);
+            }
+            return fullMerged;
+        }
+
+        async function saveScoreToRanking(name, score) {
+            const idbList = await readFromIDB();
+            const prevMerged = mergeRankings(
+                cachedRankings,
+                readFromLocalStorage(),
+                readFromWindowName(),
+                readFromUrlHash(),
+                idbList
+            );
+
+            const prevRecord = prevMerged.find(item => item.name === name);
+            const isPersonalBest = !prevRecord || score > prevRecord.score;
+
+            const immediateMerged = mergeRankings(prevMerged, [{ name, score }]);
+            persistAllLocalLayers(immediateMerged);
+
+            const inTop5Immediate = immediateMerged.slice(0, 5).some(item => item.name === name && item.score === score);
+            const highlightName = (isPersonalBest && inTop5Immediate) ? name : null;
+
+            renderRankingList(gameoverRankingListEl, immediateMerged, highlightName);
+            renderRankingList(rankingListEl, immediateMerged);
+            updateBestHud(immediateMerged);
+
+            if (CLOUD_RANKING_URL) {
+                const cloudList = await fetchCloudRankings();
+                const fullMerged = mergeRankings(immediateMerged, cloudList);
+                persistAllLocalLayers(fullMerged);
+                await pushCloudRankings(fullMerged);
+
+                const inTop5Cloud = fullMerged.slice(0, 5).some(item => item.name === name && item.score === score);
+                renderRankingList(gameoverRankingListEl, fullMerged, (isPersonalBest && inTop5Cloud) ? name : null);
+                renderRankingList(rankingListEl, fullMerged);
+                updateBestHud(fullMerged);
+            }
+        }
+
+        window.addEventListener('storage', () => syncAllRankings());
+        window.addEventListener('hashchange', () => syncAllRankings());
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') syncAllRankings();
+        });
+
+        syncAllRankings();
 
         // --- 1. 3D 공간 및 화면 비율 대응 카메라 설정 ---
         const scene = new THREE.Scene();
@@ -975,7 +1188,6 @@
         let laneMoveTimer = 0;
         const laneMoveDelay = 11;
 
-        // [속도 밸런스 조정] 시작 속도 0.70 및 완만한 가속
         const BASE_OBS_SPEED = 0.70;
         const MAX_OBS_SPEED = 1.55;
         const SPEED_STEP = 0.014;
@@ -1099,7 +1311,7 @@
         function startGameFromLobby() {
             const rawNick = nicknameInput.value.trim();
             playerNickname = rawNick.length > 0 ? rawNick : '항해사';
-            localStorage.setItem(LAST_NICKNAME_KEY, rawNick);
+            try { localStorage.setItem(LAST_NICKNAME_KEY, rawNick); } catch (e) {}
             currentNicknameSpan.innerText = playerNickname;
 
             resetGameWorld();
@@ -1373,11 +1585,7 @@
             }
             messageDisplay.style.color = "#d90429";
 
-            const { top5, highlightName } = saveScoreToRanking(playerNickname, exp);
-            renderRankingList(gameoverRankingListEl, top5, highlightName);
-            renderRankingList(rankingListEl, top5);
-            updateBestHud();
-
+            saveScoreToRanking(playerNickname, exp);
             gameoverPanel.style.display = 'flex';
         }
 
@@ -1393,7 +1601,7 @@
             jumpIndicator.style.display = 'none';
             bestHud.style.display = 'none';
             mobileControls.style.display = 'none';
-            renderRankingList(rankingListEl, loadRankings());
+            syncAllRankings();
             lobbyScreen.style.display = 'flex';
         });
 
