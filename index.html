@@ -121,16 +121,9 @@
             color: #00f5d4;
             font-size: 17px;
             font-weight: bold;
-            margin-bottom: 4px;
+            margin-bottom: 10px;
             letter-spacing: 1px;
             text-align: center;
-        }
-
-        #sync-status {
-            font-size: 11px;
-            color: #90e0ef;
-            text-align: center;
-            margin-bottom: 8px;
         }
 
         #nickname-input {
@@ -149,7 +142,6 @@
             transition: all 0.2s;
             user-select: text;
             -webkit-user-select: text;
-            margin-top: 6px;
         }
 
         #nickname-input::placeholder {
@@ -460,7 +452,6 @@
 
             <div class="ranking-box">
                 <div class="panel-title">🏆 실시간 랭킹 TOP 5</div>
-                <div id="sync-status">연동 확인 중...</div>
                 <ul id="ranking-list"></ul>
             </div>
         </div>
@@ -504,21 +495,14 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // --- 0. 닉네임 및 다중 브라우저/기기 영구 랭킹 시스템 ---
-        // [필수 설정] PC와 모바일이 실시간으로 같은 랭킹을 공유하려면
-        // 아래 따옴표 안에 Firebase Realtime Database 주소를 붙여넣으세요.
-        // 예: "https://내프로젝트-default-rtdb.firebaseio.com"
-        const RAW_CLOUD_URL = "";
-
-        function normalizeCloudUrl(url) {
-            const trimmed = (url || "").trim();
-            if (!trimmed) return "";
-            if (trimmed.endsWith(".json")) return trimmed;
-            return trimmed.replace(/\/+$/, "") + "/bukang_rankings.json";
+        // 이전 버전 서비스 워커 캐시가 남아있을 경우 해제하여 최신 웹 코드 유지
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((r) => r.unregister());
+            }).catch(() => {});
         }
 
-        const CLOUD_RANKING_URL = normalizeCloudUrl(RAW_CLOUD_URL);
-
+        // --- 0. 닉네임 및 브라우저 간 영구 랭킹 보존 시스템 (초기화 방지 4중 저장) ---
         const RANKING_STORAGE_KEY = 'bukang_avoid_3d_rankings_v3';
         const LAST_NICKNAME_KEY = 'bukang_avoid_3d_last_nick';
         const WINDOW_NAME_PREFIX = 'BUKANG_RANK_V3:';
@@ -527,7 +511,6 @@
 
         const nicknameInput = document.getElementById('nickname-input');
         const rankingListEl = document.getElementById('ranking-list');
-        const syncStatusEl = document.getElementById('sync-status');
         const gameoverRankingListEl = document.getElementById('gameover-ranking-list');
         const currentNicknameSpan = document.getElementById('current-nickname');
         const bestHud = document.getElementById('best-hud');
@@ -535,12 +518,6 @@
 
         let playerNickname = '항해사';
         let cachedRankings = [];
-
-        function setSyncStatus(text, color = '#90e0ef') {
-            if (!syncStatusEl) return;
-            syncStatusEl.textContent = text;
-            syncStatusEl.style.color = color;
-        }
 
         try {
             const savedNick = localStorage.getItem(LAST_NICKNAME_KEY);
@@ -581,7 +558,7 @@
             } catch (e) {}
         }
 
-        // 저장소 2: IndexedDB
+        // 저장소 2: IndexedDB (Safari 및 모바일 브라우저 영구 보존)
         function openRankingIDB() {
             return new Promise((resolve, reject) => {
                 if (!window.indexedDB) return reject();
@@ -627,7 +604,7 @@
             } catch (e) {}
         }
 
-        // 저장소 3: window.name
+        // 저장소 3: window.name (시크릿 모드 및 저장소 제한 브라우저 백업)
         function readFromWindowName() {
             try {
                 if (typeof window.name === 'string' && window.name.startsWith(WINDOW_NAME_PREFIX)) {
@@ -644,7 +621,7 @@
             } catch (e) {}
         }
 
-        // 저장소 4: URL 해시 (#r=...)
+        // 저장소 4: URL 해시 (#r=...) - 인앱 브라우저에서 Safari/Chrome 전환 시 자동 승계
         function readFromUrlHash() {
             try {
                 const hash = window.location.hash || '';
@@ -672,52 +649,6 @@
                 const b64 = btoa(unescape(encodeURIComponent(jsonStr)))
                     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
                 history.replaceState(null, '', '#r=' + b64);
-            } catch (e) {}
-        }
-
-        // 저장소 5: 클라우드 데이터베이스
-        async function fetchCloudRankings() {
-            if (!CLOUD_RANKING_URL) {
-                setSyncStatus('📱 기기 내 저장 모드 (서버 URL 미입력)', '#ffd166');
-                return { ok: false, list: [] };
-            }
-            try {
-                const res = await fetch(CLOUD_RANKING_URL, { cache: 'no-store' });
-                if (!res.ok) {
-                    if (res.status === 401 || res.status === 403) {
-                        setSyncStatus('⚠️ Firebase 읽기 권한 차단됨 (규칙 확인)', '#ff6b6b');
-                    } else {
-                        setSyncStatus(`⚠️ 서버 응답 오류 (${res.status})`, '#ff6b6b');
-                    }
-                    return { ok: false, list: [] };
-                }
-                const data = await res.json();
-                setSyncStatus('🌐 PC·모바일 전체 기기 연동됨', '#00f5d4');
-                if (!data) return { ok: true, list: [] };
-                if (Array.isArray(data)) return { ok: true, list: mergeRankings(data) };
-                if (typeof data === 'object') return { ok: true, list: mergeRankings(Object.values(data)) };
-                return { ok: true, list: [] };
-            } catch (e) {
-                setSyncStatus('⚠️ 서버 연결 실패 (주소/인터넷 확인)', '#ff6b6b');
-                return { ok: false, list: [] };
-            }
-        }
-
-        async function pushCloudRankings(mergedList) {
-            if (!CLOUD_RANKING_URL || mergedList.length === 0) return;
-            try {
-                const res = await fetch(CLOUD_RANKING_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mergedList.slice(0, 20))
-                });
-                if (!res.ok) {
-                    if (res.status === 401 || res.status === 403) {
-                        setSyncStatus('⚠️ Firebase 쓰기 권한 차단됨 (규칙 확인)', '#ff6b6b');
-                    }
-                } else {
-                    setSyncStatus('🌐 PC·모바일 전체 기기 연동됨', '#00f5d4');
-                }
             } catch (e) {}
         }
 
@@ -792,20 +723,7 @@
             persistAllLocalLayers(mergedLocal);
             renderRankingList(rankingListEl, mergedLocal);
             updateBestHud(mergedLocal);
-
-            const cloudRes = await fetchCloudRankings();
-            if (!cloudRes.ok) return mergedLocal;
-
-            const cloudList = cloudRes.list;
-            const fullMerged = mergeRankings(mergedLocal, cloudList);
-            persistAllLocalLayers(fullMerged);
-            renderRankingList(rankingListEl, fullMerged);
-            updateBestHud(fullMerged);
-
-            if (fullMerged.length > cloudList.length || JSON.stringify(fullMerged.slice(0, 5)) !== JSON.stringify(cloudList.slice(0, 5))) {
-                pushCloudRankings(fullMerged);
-            }
-            return fullMerged;
+            return mergedLocal;
         }
 
         async function saveScoreToRanking(name, score) {
@@ -821,28 +739,15 @@
             const prevRecord = prevMerged.find(item => item.name === name);
             const isPersonalBest = !prevRecord || score > prevRecord.score;
 
-            const immediateMerged = mergeRankings(prevMerged, [{ name, score }]);
-            persistAllLocalLayers(immediateMerged);
+            const merged = mergeRankings(prevMerged, [{ name, score }]);
+            persistAllLocalLayers(merged);
 
-            const inTop5Immediate = immediateMerged.slice(0, 5).some(item => item.name === name && item.score === score);
-            const highlightName = (isPersonalBest && inTop5Immediate) ? name : null;
+            const inTop5 = merged.slice(0, 5).some(item => item.name === name && item.score === score);
+            const highlightName = (isPersonalBest && inTop5) ? name : null;
 
-            renderRankingList(gameoverRankingListEl, immediateMerged, highlightName);
-            renderRankingList(rankingListEl, immediateMerged);
-            updateBestHud(immediateMerged);
-
-            if (CLOUD_RANKING_URL) {
-                const cloudRes = await fetchCloudRankings();
-                const cloudList = cloudRes.ok ? cloudRes.list : [];
-                const fullMerged = mergeRankings(immediateMerged, cloudList);
-                persistAllLocalLayers(fullMerged);
-                await pushCloudRankings(fullMerged);
-
-                const inTop5Cloud = fullMerged.slice(0, 5).some(item => item.name === name && item.score === score);
-                renderRankingList(gameoverRankingListEl, fullMerged, (isPersonalBest && inTop5Cloud) ? name : null);
-                renderRankingList(rankingListEl, fullMerged);
-                updateBestHud(fullMerged);
-            }
+            renderRankingList(gameoverRankingListEl, merged, highlightName);
+            renderRankingList(rankingListEl, merged);
+            updateBestHud(merged);
         }
 
         window.addEventListener('storage', () => syncAllRankings());
