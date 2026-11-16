@@ -2,14 +2,22 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>부캉이 피하기 3D</title>
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
         body {
             margin: 0;
             overflow: hidden;
             background-color: #071928;
             font-family: '맑은 고딕', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         #ui-layer {
@@ -24,7 +32,7 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            background: rgba(7, 25, 40, 0.78);
+            background: rgba(7, 25, 40, 0.8);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -32,44 +40,50 @@
             pointer-events: auto;
             z-index: 20;
             backdrop-filter: blur(6px);
+            padding: 16px;
+            overflow-y: auto;
+            touch-action: pan-y;
         }
 
         #lobby-title {
-            font-size: 62px;
+            font-size: clamp(36px, 7vw, 62px);
             color: #00f5d4;
             font-weight: bold;
             text-shadow: 0 0 20px #00f5d4, 0 0 40px #0077b6;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             text-align: center;
         }
 
         #lobby-desc {
-            font-size: 18px;
+            font-size: clamp(14px, 3.2vw, 18px);
             color: #e0f7fa;
             text-align: center;
             line-height: 1.5;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             text-shadow: 2px 2px 4px #000;
+            width: 100%;
+            max-width: 680px;
         }
 
         .controls-box {
             margin: 10px auto;
-            padding: 10px 22px;
-            background: rgba(0, 15, 30, 0.6);
+            padding: 10px 16px;
+            background: rgba(0, 15, 30, 0.65);
             border: 1px solid rgba(0, 245, 212, 0.4);
             border-radius: 12px;
             display: inline-block;
-            font-size: 16px;
+            font-size: clamp(12px, 2.8vw, 15px);
             line-height: 1.7;
             text-align: left;
+            max-width: 100%;
         }
 
         .lang-tag {
             color: #00f5d4;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
             display: inline-block;
-            width: 42px;
+            width: 58px;
         }
 
         .highlight { color: #ffb703; font-weight: bold; }
@@ -77,19 +91,22 @@
         /* 닉네임 입력창 & 랭킹 보드 컨테이너 */
         .lobby-panel {
             display: flex;
-            gap: 24px;
+            gap: 16px;
             align-items: stretch;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
+            max-width: 660px;
         }
 
         .nickname-box, .ranking-box {
             background: rgba(0, 18, 36, 0.85);
             border: 2px solid rgba(0, 245, 212, 0.5);
             border-radius: 14px;
-            padding: 16px 24px;
+            padding: 14px 20px;
             box-shadow: 0 0 18px rgba(0, 245, 212, 0.15);
+            flex: 1 1 250px;
         }
 
         .nickname-box {
@@ -97,22 +114,22 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-width: 240px;
         }
 
         .panel-title {
             color: #00f5d4;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             letter-spacing: 1px;
             text-align: center;
         }
 
         #nickname-input {
-            width: 200px;
+            width: 100%;
+            max-width: 210px;
             padding: 10px 14px;
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             text-align: center;
             color: #fff;
@@ -122,6 +139,8 @@
             outline: none;
             font-family: inherit;
             transition: all 0.2s;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         #nickname-input::placeholder {
@@ -136,12 +155,8 @@
 
         .nickname-hint {
             margin-top: 8px;
-            font-size: 13px;
+            font-size: 12px;
             color: #90e0ef;
-        }
-
-        .ranking-box {
-            min-width: 290px;
         }
 
         #ranking-list {
@@ -149,7 +164,7 @@
             padding: 0;
             margin: 0;
             text-align: left;
-            font-size: 16px;
+            font-size: 15px;
             color: #e0f7fa;
         }
 
@@ -157,7 +172,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 8px;
+            padding: 5px 6px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
@@ -170,8 +185,8 @@
         .rank-3 { color: #e09f3e; font-weight: bold; }
 
         #start-btn {
-            padding: 14px 56px;
-            font-size: 26px;
+            padding: 13px 52px;
+            font-size: clamp(20px, 4.5vw, 26px);
             font-weight: bold;
             color: #071928;
             background-color: #00f5d4;
@@ -180,6 +195,7 @@
             cursor: pointer;
             box-shadow: 0 0 20px #00f5d4;
             transition: all 0.2s;
+            touch-action: manipulation;
         }
 
         #start-btn:hover {
@@ -190,9 +206,9 @@
 
         #exp-display {
             position: absolute;
-            top: 20px; left: 25px;
+            top: 16px; left: 18px;
             color: #00f5d4;
-            font-size: 24px;
+            font-size: clamp(19px, 4vw, 24px);
             font-weight: bold;
             text-shadow: 2px 2px 6px #000;
             display: none;
@@ -200,15 +216,15 @@
 
         #player-tag {
             color: #ffd166;
-            font-size: 18px;
-            margin-bottom: 4px;
+            font-size: clamp(14px, 3vw, 18px);
+            margin-bottom: 2px;
         }
 
         #jump-indicator {
             position: absolute;
-            top: 82px; left: 25px;
+            top: 72px; left: 18px;
             color: #ffb703;
-            font-size: 16px;
+            font-size: clamp(13px, 3vw, 16px);
             font-weight: bold;
             text-shadow: 1px 1px 4px #000;
             display: none;
@@ -217,9 +233,9 @@
         /* 인게임 우측 상단 1위 표시 */
         #best-hud {
             position: absolute;
-            top: 20px; right: 25px;
+            top: 16px; right: 18px;
             color: #ffd166;
-            font-size: 20px;
+            font-size: clamp(14px, 3.2vw, 20px);
             font-weight: bold;
             text-shadow: 2px 2px 6px #000;
             display: none;
@@ -228,15 +244,76 @@
 
         #zone-banner {
             position: absolute;
-            top: 18%; left: 50%;
+            top: 20%; left: 50%;
             transform: translate(-50%, -50%);
             color: #ffd166;
-            font-size: 36px;
+            font-size: clamp(22px, 5vw, 36px);
             font-weight: bold;
             text-shadow: 0 0 15px rgba(255, 209, 102, 0.8), 2px 2px 0 #000;
             opacity: 0;
             transition: opacity 0.4s;
             text-align: center;
+            width: 90%;
+        }
+
+        /* 모바일 & 터치 컨트롤 패드 */
+        #mobile-controls {
+            position: absolute;
+            bottom: 24px;
+            left: 0;
+            width: 100%;
+            padding: 0 22px;
+            display: none;
+            justify-content: space-between;
+            align-items: flex-end;
+            pointer-events: none;
+            z-index: 14;
+        }
+
+        .move-pad {
+            display: flex;
+            gap: 14px;
+            pointer-events: auto;
+        }
+
+        .touch-btn {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            background: rgba(0, 245, 212, 0.18);
+            border: 2.5px solid rgba(0, 245, 212, 0.65);
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.45);
+            touch-action: manipulation;
+            cursor: pointer;
+            transition: transform 0.08s, background 0.08s;
+        }
+
+        .touch-btn:active, .touch-btn.pressed {
+            background: rgba(0, 245, 212, 0.5);
+            transform: scale(0.92);
+        }
+
+        #btn-jump {
+            width: 86px;
+            height: 86px;
+            background: rgba(255, 183, 3, 0.25);
+            border-color: rgba(255, 183, 3, 0.85);
+            color: #ffd166;
+            font-size: 18px;
+            flex-direction: column;
+            line-height: 1.1;
+            pointer-events: auto;
+        }
+
+        #btn-jump:active, #btn-jump.pressed {
+            background: rgba(255, 183, 3, 0.58);
         }
 
         /* 게임 오버 결과 및 랭킹 오버레이 */
@@ -248,24 +325,26 @@
             flex-direction: column;
             align-items: center;
             pointer-events: auto;
-            z-index: 15;
+            z-index: 18;
+            width: 92%;
+            max-width: 380px;
         }
 
         #message-display {
-            font-size: 56px;
+            font-size: clamp(36px, 7.5vw, 54px);
             font-weight: bold;
             text-shadow: 3px 3px 0px #000;
             text-align: center;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
         }
 
         #gameover-ranking {
             background: rgba(7, 25, 40, 0.92);
             border: 2px solid #00f5d4;
             border-radius: 14px;
-            padding: 16px 28px;
-            min-width: 310px;
-            margin-bottom: 20px;
+            padding: 14px 22px;
+            width: 100%;
+            margin-bottom: 18px;
             color: #fff;
             box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
         }
@@ -274,14 +353,14 @@
             margin: 0 0 10px 0;
             text-align: center;
             color: #00f5d4;
-            font-size: 20px;
+            font-size: 19px;
         }
 
         #gameover-ranking-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 17px;
+            font-size: 16px;
         }
 
         #gameover-ranking-list li {
@@ -308,18 +387,21 @@
 
         .gameover-buttons {
             display: flex;
-            gap: 14px;
+            gap: 12px;
+            width: 100%;
+            justify-content: center;
         }
 
         #restart-btn, #lobby-btn {
-            padding: 14px 32px;
-            font-size: 22px;
+            padding: 13px 22px;
+            font-size: clamp(17px, 4vw, 21px);
             font-weight: bold;
             color: #fff;
             border: 3px solid #fff;
             border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s;
+            touch-action: manipulation;
         }
 
         #restart-btn {
@@ -351,11 +433,10 @@
     <div id="lobby-screen">
         <div id="lobby-title">부캉이 피하기 3D</div>
         <div id="lobby-desc">
-            출렁이는 바다 위, 상어를 피해 살아남으세요!<br>
+            출렁이는 바다 위, 상어를 피해 살아남으세요!
             <div class="controls-box">
-                <div><span class="lang-tag">[KR]</span><span class="highlight">[A / D (꾹 누르기)] 연속 이동 &nbsp;|&nbsp; [Space x1~2] 1단·2단 점프</span></div>
-                <div><span class="lang-tag">[EN]</span><span class="highlight">[A / D (Hold)] Move &nbsp;|&nbsp; [Space x1~2] Single / Double Jump</span></div>
-                <div><span class="lang-tag">[JP]</span><span class="highlight">[A / D (長押し)] 連続移動 &nbsp;|&nbsp; [Space x1~2] 1段・2段ジャンプ</span></div>
+                <div><span class="lang-tag">[PC]</span><span class="highlight">[A / D (꾹 누르기)] 연속 이동 &nbsp;|&nbsp; [Space x1~2] 1·2단 점프</span></div>
+                <div><span class="lang-tag">[모바일]</span><span class="highlight">[◀ / ▶ 버튼(꾹 누르기)] 이동 &nbsp;|&nbsp; [JUMP] 점프 (스와이프 지원)</span></div>
             </div>
         </div>
 
@@ -383,6 +464,18 @@
         <div id="jump-indicator">점프: ● ●</div>
         <div id="best-hud">1위 기록: <span id="best-score-value">0점</span></div>
         <div id="zone-banner"></div>
+
+        <!-- 모바일/터치 전용 하단 조작 버튼 -->
+        <div id="mobile-controls">
+            <div class="move-pad">
+                <button type="button" class="touch-btn" id="btn-left" aria-label="왼쪽 이동">◀</button>
+                <button type="button" class="touch-btn" id="btn-right" aria-label="오른쪽 이동">▶</button>
+            </div>
+            <button type="button" class="touch-btn" id="btn-jump" aria-label="점프">
+                <span>▲</span>
+                <span style="font-size: 13px;">JUMP</span>
+            </button>
+        </div>
 
         <div id="gameover-panel">
             <div id="message-display"></div>
@@ -435,7 +528,6 @@
             let isUpdated = false;
 
             if (existingIdx !== -1) {
-                // 같은 닉네임이 이미 랭킹에 있으면 최고 점수일 때만 갱신
                 if (score > rankings[existingIdx].score) {
                     rankings[existingIdx].score = score;
                     isUpdated = true;
@@ -499,20 +591,36 @@
             }
         }
 
-        // 초기 로비 랭킹 렌더링
         renderRankingList(rankingListEl, loadRankings());
         updateBestHud();
 
-        // --- 1. 3D 공간 및 분위기 설정 ---
+        // --- 1. 3D 공간 및 화면 비율 대응 카메라 설정 ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color('#0b4f6c');
         scene.fog = new THREE.FogExp2('#0b4f6c', 0.015);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 5.2, 12.2);
-        camera.lookAt(0, 0.5, 0);
+        let baseFov = 75;
+
+        function adjustCameraForScreen() {
+            const aspect = window.innerWidth / window.innerHeight;
+            camera.aspect = aspect;
+            // 모바일 세로 모드일 때 3개 차선이 잘리지 않도록 시야각과 카메라 거리를 넓힘
+            if (aspect < 0.85) {
+                baseFov = 86;
+                camera.position.set(0, 6.2, 13.8);
+            } else {
+                baseFov = 75;
+                camera.position.set(0, 5.2, 12.2);
+            }
+            camera.fov = baseFov;
+            camera.lookAt(0, 0.5, 0);
+            camera.updateProjectionMatrix();
+        }
+        adjustCameraForScreen();
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
@@ -840,6 +948,10 @@
         const expValueSpan = document.getElementById('exp-value');
         const jumpIndicator = document.getElementById('jump-indicator');
         const zoneBanner = document.getElementById('zone-banner');
+        const mobileControls = document.getElementById('mobile-controls');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnJump = document.getElementById('btn-jump');
         const gameoverPanel = document.getElementById('gameover-panel');
         const messageDisplay = document.getElementById('message-display');
         const restartBtn = document.getElementById('restart-btn');
@@ -876,7 +988,54 @@
             else jumpIndicator.innerText = "점프: ○ ○";
         }
 
+        function moveLeftOnce() {
+            if (!isGameStarted || isGameOver) return;
+            if (currentLane > 0) {
+                currentLane--;
+                player.rotation.z = 0.25;
+            }
+        }
+
+        function moveRightOnce() {
+            if (!isGameStarted || isGameOver) return;
+            if (currentLane < 2) {
+                currentLane++;
+                player.rotation.z = -0.25;
+            }
+        }
+
+        function setHoldLeft(active) {
+            if (active) {
+                if (!keysHeld.left) {
+                    keysHeld.left = true;
+                    btnLeft.classList.add('pressed');
+                    moveLeftOnce();
+                    laneMoveTimer = laneMoveDelay;
+                }
+            } else {
+                keysHeld.left = false;
+                btnLeft.classList.remove('pressed');
+                if (!keysHeld.right && !isGameOver) player.rotation.z = 0;
+            }
+        }
+
+        function setHoldRight(active) {
+            if (active) {
+                if (!keysHeld.right) {
+                    keysHeld.right = true;
+                    btnRight.classList.add('pressed');
+                    moveRightOnce();
+                    laneMoveTimer = laneMoveDelay;
+                }
+            } else {
+                keysHeld.right = false;
+                btnRight.classList.remove('pressed');
+                if (!keysHeld.left && !isGameOver) player.rotation.z = 0;
+            }
+        }
+
         function triggerJump() {
+            if (!isGameStarted || isGameOver) return;
             if (jumpCount < maxJumps) {
                 isJumping = true;
                 jumpCount++;
@@ -906,13 +1065,12 @@
             isJumping = false;
             jumpCount = 0;
             doubleJumpSpin = 0;
-            keysHeld.left = false;
-            keysHeld.right = false;
+            setHoldLeft(false);
+            setHoldRight(false);
             
             currentObsSpeed = 0.9;
             spawnInterval = 52;
-            camera.fov = 75;
-            camera.updateProjectionMatrix();
+            adjustCameraForScreen();
 
             applyOceanTheme(oceanThemes[0]);
             
@@ -926,6 +1084,7 @@
             updateJumpUI();
             updateBestHud();
             gameoverPanel.style.display = 'none';
+            mobileControls.style.display = 'flex';
         }
 
         function startGameFromLobby() {
@@ -939,10 +1098,11 @@
             expDisplay.style.display = 'block';
             jumpIndicator.style.display = 'block';
             bestHud.style.display = 'block';
+            mobileControls.style.display = 'flex';
             isGameStarted = true;
         }
 
-        // --- 7. 시작 및 조작 이벤트 ---
+        // --- 7. PC 키보드 & 모바일 터치/스와이프 이벤트 ---
         startBtn.addEventListener('click', startGameFromLobby);
 
         nicknameInput.addEventListener('keydown', (e) => {
@@ -952,6 +1112,71 @@
             }
         });
 
+        // 모바일 버튼 바인딩 (PointerEvent로 터치 & 마우스 동시 지원)
+        function bindHoldButton(btn, setter) {
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setter(true);
+            });
+            const release = (e) => {
+                e.preventDefault();
+                setter(false);
+            };
+            btn.addEventListener('pointerup', release);
+            btn.addEventListener('pointercancel', release);
+            btn.addEventListener('pointerleave', release);
+        }
+
+        bindHoldButton(btnLeft, setHoldLeft);
+        bindHoldButton(btnRight, setHoldRight);
+
+        btnJump.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btnJump.classList.add('pressed');
+            triggerJump();
+        });
+        const releaseJumpBtn = () => btnJump.classList.remove('pressed');
+        btnJump.addEventListener('pointerup', releaseJumpBtn);
+        btnJump.addEventListener('pointercancel', releaseJumpBtn);
+        btnJump.addEventListener('pointerleave', releaseJumpBtn);
+
+        // 화면 전체 스와이프 제스처 지원 (좌/우 이동, 위로 스와이프 시 점프)
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let swipeHandled = false;
+
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (!isGameStarted || isGameOver) return;
+            const t = e.touches[0];
+            touchStartX = t.clientX;
+            touchStartY = t.clientY;
+            swipeHandled = false;
+        }, { passive: true });
+
+        renderer.domElement.addEventListener('touchmove', (e) => {
+            if (!isGameStarted || isGameOver || swipeHandled) return;
+            const t = e.touches[0];
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+            const threshold = 28;
+
+            if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+                swipeHandled = true;
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx < 0) moveLeftOnce();
+                    else moveRightOnce();
+                    setTimeout(() => {
+                        if (!keysHeld.left && !keysHeld.right && !isGameOver) player.rotation.z = 0;
+                    }, 160);
+                } else if (dy < 0) {
+                    triggerJump();
+                }
+            }
+        }, { passive: true });
+
+        // PC 키보드 조작
         window.addEventListener('keydown', (e) => {
             if (isGameOver && e.key === 'Enter') {
                 restartBtn.click();
@@ -963,23 +1188,9 @@
             const key = e.key.toLowerCase();
 
             if (key === 'a' || e.key === 'ArrowLeft') {
-                if (!keysHeld.left) {
-                    keysHeld.left = true;
-                    if (currentLane > 0) {
-                        currentLane--;
-                        player.rotation.z = 0.25;
-                    }
-                    laneMoveTimer = laneMoveDelay;
-                }
+                setHoldLeft(true);
             } else if (key === 'd' || e.key === 'ArrowRight') {
-                if (!keysHeld.right) {
-                    keysHeld.right = true;
-                    if (currentLane < 2) {
-                        currentLane++;
-                        player.rotation.z = -0.25;
-                    }
-                    laneMoveTimer = laneMoveDelay;
-                }
+                setHoldRight(true);
             } else if (e.code === 'Space' && !e.repeat) {
                 triggerJump();
             }
@@ -988,13 +1199,10 @@
         window.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
             if (key === 'a' || e.key === 'ArrowLeft') {
-                keysHeld.left = false;
+                setHoldLeft(false);
             }
             if (key === 'd' || e.key === 'ArrowRight') {
-                keysHeld.right = false;
-            }
-            if (!keysHeld.left && !keysHeld.right && !isGameOver) {
-                player.rotation.z = 0;
+                setHoldRight(false);
             }
         });
 
@@ -1146,6 +1354,9 @@
 
         function handleGameOver(obsType) {
             isGameOver = true;
+            setHoldLeft(false);
+            setHoldRight(false);
+            mobileControls.style.display = 'none';
 
             if (obsType === '부표') {
                 messageDisplay.innerHTML = "부표에 걸렸습니다!";
@@ -1156,7 +1367,6 @@
             }
             messageDisplay.style.color = "#d90429";
 
-            // TOP 5 랭킹 저장 및 갱신
             const { top5, highlightName } = saveScoreToRanking(playerNickname, exp);
             renderRankingList(gameoverRankingListEl, top5, highlightName);
             renderRankingList(rankingListEl, top5);
@@ -1176,6 +1386,7 @@
             expDisplay.style.display = 'none';
             jumpIndicator.style.display = 'none';
             bestHud.style.display = 'none';
+            mobileControls.style.display = 'none';
             renderRankingList(rankingListEl, loadRankings());
             lobbyScreen.style.display = 'flex';
         });
@@ -1237,13 +1448,8 @@
                 if (keysHeld.left || keysHeld.right) {
                     laneMoveTimer--;
                     if (laneMoveTimer <= 0) {
-                        if (keysHeld.left && currentLane > 0) {
-                            currentLane--;
-                            player.rotation.z = 0.25;
-                        } else if (keysHeld.right && currentLane < 2) {
-                            currentLane++;
-                            player.rotation.z = -0.25;
-                        }
+                        if (keysHeld.left) moveLeftOnce();
+                        else if (keysHeld.right) moveRightOnce();
                         laneMoveTimer = laneMoveDelay;
                     }
                 }
@@ -1315,7 +1521,7 @@
                         currentObsSpeed = Math.min(2.1, currentObsSpeed + 0.025);
                         spawnInterval = Math.max(26, spawnInterval - 0.8);
 
-                        if (camera.fov < 84) {
+                        if (camera.fov < baseFov + 9) {
                             camera.fov += 0.25;
                             camera.updateProjectionMatrix();
                         }
@@ -1351,8 +1557,7 @@
         }
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            adjustCameraForScreen();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
